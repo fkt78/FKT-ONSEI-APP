@@ -332,6 +332,7 @@
                              <div id="voice-selectors" class="space-y-2"></div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">生成された台本（編集可能）</h3>
+                        <p class="text-sm text-gray-600 mb-2">任意の位置に「下にセリフ」で行を挿入し、キャラ名とセリフを入力するとそのメンバーが読み上げます。不要な行は「削除」で消せます。</p>
                         <div id="script-editor" class="w-full p-3 border border-gray-300 rounded-lg bg-white space-y-2"></div>
                         <div class="mt-4 p-4 border rounded-lg bg-white">
                              <h3 class="text-xl font-bold mb-3">ツール</h3>
@@ -359,6 +360,27 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                                     CSVエクスポート
                                 </button>
+                            </div>
+                            <!-- BGMを付けてダウンロード -->
+                            <div id="bgm-download-section" class="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <h4 class="font-bold text-gray-800 mb-3">BGMを付けてダウンロード</h4>
+                                <p class="text-sm text-gray-600 mb-3">VOICEVOXで作った音声にBGMを混ぜて1本のWAVで保存できます。BGMは音声が長い間ループ再生され、音声の終わりに合わせてフェードアウトします。</p>
+                                <div class="flex flex-wrap items-end gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">BGMファイル（MP3/WAV）</label>
+                                        <input type="file" id="bgm-file-input" accept="audio/*" class="hidden">
+                                        <button type="button" id="bgm-file-select-btn" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-sm">ファイルを選択</button>
+                                        <span id="bgm-file-name" class="ml-2 text-sm text-gray-500">未選択</span>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">BGMの音量 <span id="bgm-volume-value">15</span>%</label>
+                                        <input type="range" id="bgm-volume-slider" min="0" max="50" value="15" class="w-32">
+                                    </div>
+                                    <button type="button" id="download-with-bgm-btn" class="px-4 py-2 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition-all shadow flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>
+                                        BGMを付けてダウンロード
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -421,6 +443,12 @@
         const downloadFullAudioBtn = document.getElementById('download-full-audio-btn');
         const translateLanguage = document.getElementById('translate-language');
         const translateBtn = document.getElementById('translate-btn');
+        const bgmFileInput = document.getElementById('bgm-file-input');
+        const bgmFileSelectBtn = document.getElementById('bgm-file-select-btn');
+        const bgmFileName = document.getElementById('bgm-file-name');
+        const bgmVolumeSlider = document.getElementById('bgm-volume-slider');
+        const bgmVolumeValue = document.getElementById('bgm-volume-value');
+        const downloadWithBgmBtn = document.getElementById('download-with-bgm-btn');
 
         // App State
         let currentMode = 'file';
@@ -795,7 +823,7 @@
             characterVoices = {};
             characterVoicevoxIds = {};
             characterColors = {};
-            const characters = [...new Set(generatedDialogue.map(item => item.character))];
+            const characters = [...new Set(generatedDialogue.map(item => item.character).filter(c => c != null && String(c).trim() !== ''))];
             const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
 
             if (useVoicevox) {
@@ -871,13 +899,38 @@
             });
         }
 
+        function insertRowAfter(index) {
+            const d = parseScriptFromEditor();
+            d.splice(index + 1, 0, { character: '', line: '' });
+            generatedDialogue = d;
+            setupScriptEditor();
+        }
+
+        function appendRow() {
+            const d = parseScriptFromEditor();
+            d.push({ character: '', line: '' });
+            generatedDialogue = d;
+            setupScriptEditor();
+        }
+
+        function deleteRow(index) {
+            const d = parseScriptFromEditor();
+            if (d.length <= 1) {
+                alert('最後の1行は削除できません。');
+                return;
+            }
+            d.splice(index, 1);
+            generatedDialogue = d;
+            setupScriptEditor();
+        }
+
         function setupScriptEditor() {
             scriptEditor.innerHTML = '';
             generatedDialogue.forEach((item, index) => {
-                const color = characterColors[item.character] || '#374151'; // Fallback to a dark gray
+                const color = characterColors[item.character] || '#374151';
 
                 const lineDiv = document.createElement('div');
-                lineDiv.className = 'flex items-center gap-2';
+                lineDiv.className = 'flex items-center gap-2 flex-wrap';
 
                 const charInput = document.createElement('input');
                 charInput.type = 'text';
@@ -886,14 +939,16 @@
                 charInput.style.backgroundColor = color;
                 charInput.setAttribute('data-index', index);
                 charInput.setAttribute('data-type', 'character');
+                charInput.placeholder = 'キャラ名';
 
                 const lineInput = document.createElement('input');
                 lineInput.type = 'text';
                 lineInput.value = item.line;
-                lineInput.className = 'p-1 border rounded-md flex-grow';
+                lineInput.className = 'p-1 border rounded-md flex-grow min-w-[120px]';
                 lineInput.style.borderLeft = `4px solid ${color}`;
                 lineInput.setAttribute('data-index', index);
                 lineInput.setAttribute('data-type', 'line');
+                lineInput.placeholder = 'セリフ';
 
                 const copyButton = document.createElement('button');
                 copyButton.title = 'テキストをコピー';
@@ -955,12 +1010,39 @@
                     }
                 };
 
+                const insertDialogueBtn = document.createElement('button');
+                insertDialogueBtn.type = 'button';
+                insertDialogueBtn.textContent = '下にセリフ';
+                insertDialogueBtn.title = 'この行の直下にセリフ行を挿入';
+                insertDialogueBtn.className = 'text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-800';
+                insertDialogueBtn.onclick = () => insertRowAfter(index);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.textContent = '削除';
+                deleteBtn.title = 'この行を削除';
+                deleteBtn.className = 'text-xs px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-red-800';
+                deleteBtn.onclick = () => deleteRow(index);
+
                 lineDiv.appendChild(charInput);
                 lineDiv.appendChild(lineInput);
                 lineDiv.appendChild(copyButton);
                 lineDiv.appendChild(downloadBtn);
+                lineDiv.appendChild(insertDialogueBtn);
+                lineDiv.appendChild(deleteBtn);
                 scriptEditor.appendChild(lineDiv);
             });
+
+            const endRow = document.createElement('div');
+            endRow.className = 'flex items-center gap-2 mt-2 pt-2 border-t border-gray-200';
+            const addDialogueBtn = document.createElement('button');
+            addDialogueBtn.type = 'button';
+            addDialogueBtn.textContent = '行を追加';
+            addDialogueBtn.title = '新しいセリフ行を末尾に追加（キャラ名・セリフを入力するとそのメンバーが読み上げます）';
+            addDialogueBtn.className = 'px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-sm font-medium';
+            addDialogueBtn.onclick = () => appendRow();
+            endRow.appendChild(addDialogueBtn);
+            scriptEditor.appendChild(endRow);
         }
 
         // Playback Logic
@@ -1248,6 +1330,117 @@
             } finally {
                 downloadFullAudioBtn.disabled = false;
                 downloadFullAudioBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>音声をまとめてダウンロード`;
+            }
+        });
+
+        bgmFileSelectBtn.addEventListener('click', () => bgmFileInput.click());
+        bgmFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            bgmFileName.textContent = file ? file.name : '未選択';
+        });
+        bgmVolumeSlider.addEventListener('input', () => {
+            bgmVolumeValue.textContent = bgmVolumeSlider.value;
+        });
+
+        downloadWithBgmBtn.addEventListener('click', async () => {
+            const dialogue = parseScriptFromEditor();
+            if (dialogue.length === 0) {
+                alert('台本がありません。');
+                return;
+            }
+            const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
+            if (!useVoicevox || voicevoxSpeakers.length === 0) {
+                alert('「BGMを付けてダウンロード」は VOICEVOX 選択時のみ利用できます。');
+                return;
+            }
+            if (!bgmFileInput.files || !bgmFileInput.files[0]) {
+                alert('BGMファイルを選択してください。');
+                return;
+            }
+            const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
+            const GAP_SEC = 0.2;
+            const bgmGain = parseInt(bgmVolumeSlider.value, 10) / 100;
+            downloadWithBgmBtn.disabled = true;
+            downloadWithBgmBtn.textContent = '生成中...';
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const buffers = [];
+                let sampleRate = 24000;
+                let numChannels = 1;
+                for (let i = 0; i < dialogue.length; i++) {
+                    const d = dialogue[i];
+                    const speakerId = characterVoicevoxIds[d.character] ?? voicevoxSpeakers[0].id;
+                    const text = d.line.trim();
+                    if (!text) continue;
+                    const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
+                    if (!queryRes.ok) throw new Error(`行 ${i + 1} の取得に失敗`);
+                    const query = await queryRes.json();
+                    const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) });
+                    if (!synthRes.ok) throw new Error(`行 ${i + 1} の音声生成に失敗`);
+                    const blob = await synthRes.blob();
+                    const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+                    sampleRate = buf.sampleRate;
+                    numChannels = buf.numberOfChannels;
+                    buffers.push(buf);
+                }
+                if (buffers.length === 0) throw new Error('有効なセリフがありません');
+                sampleRate = buffers[0].sampleRate;
+                numChannels = buffers[0].numberOfChannels;
+                const totalSamples = buffers.reduce((acc, b) => acc + b.length, 0) + Math.round(GAP_SEC * sampleRate) * (buffers.length - 1);
+                const offlineVoice = new OfflineAudioContext(numChannels, totalSamples, sampleRate);
+                let offset = 0;
+                for (let i = 0; i < buffers.length; i++) {
+                    const src = offlineVoice.createBufferSource();
+                    src.buffer = buffers[i];
+                    src.connect(offlineVoice.destination);
+                    src.start(offset);
+                    offset += buffers[i].length / sampleRate + GAP_SEC;
+                }
+                const voiceBuffer = await offlineVoice.startRendering();
+
+                const bgmArrayBuffer = await bgmFileInput.files[0].arrayBuffer();
+                const bgmBuffer = await ctx.decodeAudioData(bgmArrayBuffer);
+
+                const outChannels = Math.max(voiceBuffer.numberOfChannels, bgmBuffer.numberOfChannels);
+                const outLength = voiceBuffer.length;
+                const outSampleRate = voiceBuffer.sampleRate;
+                const offlineMix = new OfflineAudioContext(outChannels, outLength, outSampleRate);
+
+                const voiceSrc = offlineMix.createBufferSource();
+                voiceSrc.buffer = voiceBuffer;
+                voiceSrc.connect(offlineMix.destination);
+                voiceSrc.start(0);
+
+                const voiceDurationSec = voiceBuffer.length / outSampleRate;
+                const fadeOutSec = Math.min(2, voiceDurationSec * 0.5);
+
+                const bgmSrc = offlineMix.createBufferSource();
+                bgmSrc.buffer = bgmBuffer;
+                bgmSrc.loop = true;
+                const bgmGainNode = offlineMix.createGain();
+                bgmGainNode.gain.setValueAtTime(bgmGain, 0);
+                bgmGainNode.gain.linearRampToValueAtTime(bgmGain, Math.max(0, voiceDurationSec - fadeOutSec));
+                bgmGainNode.gain.linearRampToValueAtTime(0, voiceDurationSec);
+                bgmSrc.connect(bgmGainNode);
+                bgmGainNode.connect(offlineMix.destination);
+                bgmSrc.start(0);
+
+                const mixed = await offlineMix.startRendering();
+                const wav = audioBufferToWav(mixed);
+                const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'script_full_audio_with_bgm.wav';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error(e);
+                alert('BGM付きダウンロードに失敗しました。' + (e.message || ''));
+            } finally {
+                downloadWithBgmBtn.disabled = false;
+                downloadWithBgmBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>BGMを付けてダウンロード`;
             }
         });
 
