@@ -1,7 +1,18 @@
 # FKT-ONSEI-APP（AI動画広告ジェネレーター）
 
-画像やURLから、AI（Gemini）が広告用の掛け合い台本を自動作成するWebアプリです。  
+画像やURLから、AI（Gemini）が広告用の掛け合い台本を自動作成する**音声作成アプリ**です。  
 台本の音声読み上げ・CSVインポート/エクスポート・翻訳にも対応しています。
+
+## 公開URL（Firebase Hosting）
+
+このアプリは **音声作成アプリ専用のサイト** にデプロイされます（プロジェクトのメイン URL とは別です）。
+
+- **https://onsei-app-999b5.hattyuu-kanri-app-test.web.app**
+- **https://onsei-app-999b5.hattyuu-kanri-app-test.firebaseapp.com**
+
+（`onsei` = 音声 なので、音声作成アプリだと分かる URL です）
+
+デプロイ手順は **Firebaseデプロイ手順.md** を参照してください。
 
 ## 含まれるファイル
 

@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI広告台本">
     <title>AI動画広告ジェネレーター (セリフ色分け版)</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Libraries for file parsing -->
@@ -53,6 +59,7 @@
             text-overflow: ellipsis;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
         }
         #result-image-container {
@@ -304,6 +311,24 @@
                     <div class="mt-4">
                         <div id="voice-settings-container" class="mb-4 p-4 border rounded-lg bg-white">
                              <h3 class="text-xl font-bold mb-3">話者の設定</h3>
+                             <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                                 <p class="font-semibold text-gray-700 mb-2">音声エンジン</p>
+                                 <div class="flex flex-wrap items-center gap-4">
+                                     <label class="flex items-center gap-2 cursor-pointer">
+                                         <input type="radio" name="voice-engine" value="browser" checked class="form-radio text-blue-600">
+                                         <span>ブラウザの音声</span>
+                                     </label>
+                                     <label class="flex items-center gap-2 cursor-pointer">
+                                         <input type="radio" name="voice-engine" value="voicevox" class="form-radio text-blue-600">
+                                         <span>VOICEVOX（ずんだもん等）</span>
+                                     </label>
+                                     <span id="voicevox-status" class="text-sm text-gray-500 hidden"></span>
+                                 </div>
+                                 <div id="voicevox-url-row" class="mt-2 hidden">
+                                     <label class="text-sm text-gray-600">VOICEVOX Engine URL（通常はそのままでOK）:</label>
+                                     <input type="text" id="voicevox-engine-url" value="http://localhost:50021" class="mt-1 w-full max-w-md p-2 border border-gray-300 rounded text-sm">
+                                 </div>
+                             </div>
                              <div id="voice-selectors" class="space-y-2"></div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">生成された台本（編集可能）</h3>
@@ -321,18 +346,34 @@
                                 </select>
                                 <button id="translate-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition-all text-sm flex-shrink-0">翻訳を実行</button>
                              </div>
-                             <div class="flex gap-4">
-                                <button id="play-full-ad-btn" class="w-full bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md flex items-center justify-center text-lg">
+                             <div class="flex flex-wrap gap-4">
+                                <button id="play-full-ad-btn" class="flex-1 min-w-[140px] bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md flex items-center justify-center text-lg">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
                                     ここから再生
                                 </button>
-                                <button id="export-csv-btn" class="w-full bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-600 transition-all shadow-md flex items-center justify-center text-lg">
+                                <button id="download-full-audio-btn" class="flex-1 min-w-[140px] bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center text-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>
+                                    音声をまとめてダウンロード
+                                </button>
+                                <button id="export-csv-btn" class="flex-1 min-w-[140px] bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-600 transition-all shadow-md flex items-center justify-center text-lg">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                                     CSVエクスポート
                                 </button>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- VOICEVOX 利用時 -->
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 class="text-xl font-bold mb-3 text-blue-900">VOICEVOX（ずんだもん等）を使う場合</h3>
+                    <p class="font-semibold text-blue-900 mb-2">「同じPCでエンジンを起動する」とは：</p>
+                    <ol class="list-decimal list-inside text-blue-800 space-y-2 text-sm mb-3">
+                        <li><strong>VOICEVOX</strong> を <a href="https://voicevox.hiroshiba.jp/" target="_blank" rel="noopener" class="underline">公式サイト（voicevox.hiroshiba.jp）</a> からダウンロードし、Mac にインストールします。</li>
+                        <li>アプリケーションから <strong>VOICEVOX</strong> を起動し、ウィンドウを開いたままにします（バックグラウンドで動いていればOK）。</li>
+                        <li>この状態で、このアプリ（<strong>http://localhost:9000</strong> など）を<strong>同じ Mac</strong> のブラウザで開き、「音声エンジン」で <strong>VOICEVOX</strong> を選ぶと、ずんだもん等の声で再生できます。</li>
+                    </ol>
+                    <p class="text-blue-800 text-sm">※ VOICEVOX を起動すると、内部で Engine がポート 50021 で待ち受けます。別の PC でこのアプリを開いていると接続できないため、「同じPC（同じMac）で」VOICEVOX を起動する必要があります。</p>
                 </div>
 
                 <!-- Export Instructions -->
@@ -377,6 +418,7 @@
         const importCsvBtn = document.getElementById('import-csv-btn');
         const csvImportInput = document.getElementById('csv-import-input');
         const exportCsvBtn = document.getElementById('export-csv-btn');
+        const downloadFullAudioBtn = document.getElementById('download-full-audio-btn');
         const translateLanguage = document.getElementById('translate-language');
         const translateBtn = document.getElementById('translate-btn');
 
@@ -391,6 +433,12 @@
         let characterColors = {}; // For color-coding speakers
         let imageSlideshowInterval = null; // スライドショー用タイマーID（未宣言バグ修正）
         const colors = ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6']; // blue, green, red, orange, purple
+
+        // VOICEVOX 用
+        let voicevoxSpeakers = []; // { id, displayName } の配列（スタイル単位）
+        let characterVoicevoxIds = {}; // キャラ名 -> VOICEVOX スピーカーID（スタイルID）
+        let currentVoicevoxAudio = null; // 再生中の Audio（停止用）
+        let lineAdvanceScheduled = false; // 1行につき1回だけ次に進むためのフラグ（句読点で onend が複数回出る対策）
 
         // Speech Synthesis Setup
         const synth = window.speechSynthesis;
@@ -411,6 +459,77 @@
                 urlInputSection.classList.remove('hidden');
             }
         });
+
+        // 音声エンジン切替（ブラウザ / VOICEVOX）
+        document.querySelectorAll('input[name="voice-engine"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isVoicevox = e.target.value === 'voicevox';
+                document.getElementById('voicevox-url-row').classList.toggle('hidden', !isVoicevox);
+                const statusEl = document.getElementById('voicevox-status');
+                statusEl.classList.remove('hidden');
+                if (isVoicevox) {
+                    statusEl.textContent = 'VOICEVOX に接続しています...';
+                    fetchVoicevoxSpeakers().then(ok => {
+                        statusEl.textContent = ok ? `VOICEVOX 対応（${voicevoxSpeakers.length} 種類の声）` : 'VOICEVOX に接続できません。Engine を起動してください。';
+                        statusEl.style.color = ok ? '#059669' : '#dc2626';
+                        if (ok && voiceSelectors.innerHTML) setupVoiceSelectors();
+                    }).catch(() => {
+                        statusEl.textContent = 'VOICEVOX に接続できません。Engine を起動してください。';
+                        statusEl.style.color = '#dc2626';
+                    });
+                } else {
+                    statusEl.textContent = '';
+                    if (voiceSelectors.innerHTML) setupVoiceSelectors();
+                }
+            });
+        });
+        document.getElementById('voicevox-engine-url').addEventListener('change', () => {
+            if (document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox') {
+                fetchVoicevoxSpeakers().then(ok => {
+                    const statusEl = document.getElementById('voicevox-status');
+                    statusEl.textContent = ok ? `VOICEVOX 対応（${voicevoxSpeakers.length} 種類の声）` : '接続できません';
+                    statusEl.style.color = ok ? '#059669' : '#dc2626';
+                    if (ok && voiceSelectors.innerHTML) setupVoiceSelectors();
+                });
+            }
+        });
+
+        async function fetchVoicevoxSpeakers() {
+            const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
+            try {
+                const res = await fetch(`${base}/speakers`);
+                if (!res.ok) return false;
+                const data = await res.json();
+                voicevoxSpeakers = [];
+                data.forEach(sp => {
+                    (sp.styles || []).forEach(style => {
+                        voicevoxSpeakers.push({
+                            id: style.id,
+                            displayName: `${sp.name}（${style.name}）`
+                        });
+                    });
+                });
+                return voicevoxSpeakers.length > 0;
+            } catch (e) {
+                console.warn('VOICEVOX fetch failed', e);
+                return false;
+            }
+        }
+
+        async function voicevoxSynthesize(text, speakerId) {
+            const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
+            const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
+            if (!queryRes.ok) throw new Error('VOICEVOX audio_query failed');
+            const query = await queryRes.json();
+            const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(query)
+            });
+            if (!synthRes.ok) throw new Error('VOICEVOX synthesis failed');
+            const wavBlob = await synthRes.blob();
+            return URL.createObjectURL(wavBlob);
+        }
 
         // File Upload Logic
         dropZone.addEventListener('click', () => fileUpload.click());
@@ -547,7 +666,7 @@
         });
 
         // Gemini API Call
-        const GEMINI_API_KEY = ""; // ここにAPIキーを設定してください
+        const GEMINI_API_KEY = "AIzaSyDtf6N3IOF874fByFP77tcA1CG6WogEbDc"; // Gemini APIキー
 
         async function callGemini(parts) {
             if (!GEMINI_API_KEY || !GEMINI_API_KEY.trim()) {
@@ -575,7 +694,7 @@
         }
 
         async function generateScript() {
-            const numSpeakers = speakerCount.value;
+            const numSpeakers = Math.max(1, Math.min(10, parseInt(speakerCount.value, 10) || 2));
             
             // Collect Step 2: Atmosphere/Format
             const checkedScenarioCheckboxes = document.querySelectorAll('#scenario-checkboxes input[type="checkbox"]:checked');
@@ -599,7 +718,7 @@
 
             const commonRules = `
 # ルール
-- 登場人物は${numSpeakers}人にしてください。
+- 登場人物は${String(numSpeakers)}人にしてください。
 - 指定された【雰囲気・形式】と【訴求ポイント】を厳密に守ってください。
 - 特に「新商品アピール」や「価格強調」などの指示がある場合は、セリフの中で明確に言及してください。
 - 出力は必ず以下のJSON形式に従ってください。
@@ -608,7 +727,7 @@
             `;
 
             if (currentMode === 'url') {
-                prompt = `指定されたURLのウェブページの内容を読み取り、その内容を要約してください。その後、その要約と以下のシナリオ指示に基づいて、登場人物${numSpeakers}人による魅力的な会話形式の台本を作成してください。\n\n# URL\n${urlInput.value}\n\n# シナリオの指示\n${scenarioPromptText}\n${commonRules}`;
+                prompt = `指定されたURLのウェブページの内容を読み取り、その内容を要約してください。その後、その要約と以下のシナリオ指示に基づいて、登場人物${String(numSpeakers)}人による魅力的な会話形式の台本を作成してください。\n\n# URL\n${urlInput.value}\n\n# シナリオの指示\n${scenarioPromptText}\n${commonRules}`;
                 parts.push({ text: prompt });
             } else { // file mode
                 prompt = `以下の【すべてのファイル】の内容を注意深く分析し、それら全ての情報を網羅した、一貫性のある会話台本を1つだけ作成してください。\n\n# シナリオの指示\n${scenarioPromptText}\n${commonRules}`;
@@ -674,9 +793,43 @@
         function setupVoiceSelectors() {
             voiceSelectors.innerHTML = '';
             characterVoices = {};
+            characterVoicevoxIds = {};
             characterColors = {};
             const characters = [...new Set(generatedDialogue.map(item => item.character))];
-            
+            const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
+
+            if (useVoicevox) {
+                if (voicevoxSpeakers.length === 0) {
+                    voiceSelectors.innerHTML = '<p class="text-amber-600">VOICEVOX を選択しましたが、Engine に接続できていません。上で「VOICEVOX」を選び直すか、VOICEVOX Engine を起動してください。</p>';
+                    return;
+                }
+                characters.forEach((char, index) => {
+                    characterColors[char] = colors[index % colors.length];
+                    const selectorDiv = document.createElement('div');
+                    selectorDiv.className = 'flex items-center justify-between gap-4';
+                    const label = document.createElement('label');
+                    label.textContent = `${char}の声:`;
+                    label.className = 'font-semibold flex-shrink-0';
+                    label.style.color = characterColors[char];
+                    const select = document.createElement('select');
+                    select.className = 'w-full p-2 border rounded-md bg-white';
+                    voicevoxSpeakers.forEach((s, i) => {
+                        const option = document.createElement('option');
+                        option.value = s.id;
+                        option.textContent = s.displayName;
+                        select.appendChild(option);
+                    });
+                    const initialId = voicevoxSpeakers[Math.min(index % voicevoxSpeakers.length, voicevoxSpeakers.length - 1)].id;
+                    select.value = String(initialId);
+                    characterVoicevoxIds[char] = initialId;
+                    select.onchange = () => { characterVoicevoxIds[char] = parseInt(select.value, 10); };
+                    selectorDiv.appendChild(label);
+                    selectorDiv.appendChild(select);
+                    voiceSelectors.appendChild(selectorDiv);
+                });
+                return;
+            }
+
             if (japaneseVoices.length === 0) {
                 voiceSelectors.innerHTML = '<p class="text-red-500">利用可能な音声が読み込めませんでした。ブラウザをリロードしてみてください。</p>';
                 return;
@@ -743,6 +896,7 @@
                 lineInput.setAttribute('data-type', 'line');
 
                 const copyButton = document.createElement('button');
+                copyButton.title = 'テキストをコピー';
                 copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>`;
                 copyButton.className = 'bg-gray-200 hover:bg-gray-300 p-2 rounded-md transition';
                 copyButton.onclick = () => {
@@ -753,17 +907,58 @@
                     textArea.select();
                     document.execCommand('copy');
                     document.body.removeChild(textArea);
-
-                    const originalColor = copyButton.style.color;
                     copyButton.classList.add('text-green-500');
-                    setTimeout(() => {
-                        copyButton.classList.remove('text-green-500');
-                    }, 1500);
+                    setTimeout(() => copyButton.classList.remove('text-green-500'), 1500);
+                };
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.title = 'この行の音声をダウンロード（VOICEVOX選択時）';
+                downloadBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>`;
+                downloadBtn.className = 'bg-emerald-100 hover:bg-emerald-200 p-2 rounded-md transition text-emerald-800';
+                downloadBtn.onclick = async () => {
+                    const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
+                    if (!useVoicevox || voicevoxSpeakers.length === 0) {
+                        alert('音声のダウンロードは「VOICEVOX（ずんだもん等）」を選択した状態で利用できます。');
+                        return;
+                    }
+                    const char = charInput.value.trim() || '話者';
+                    const text = lineInput.value.trim();
+                    if (!text) {
+                        alert('セリフが空です。');
+                        return;
+                    }
+                    const speakerId = characterVoicevoxIds[char] ?? voicevoxSpeakers[0].id;
+                    downloadBtn.disabled = true;
+                    downloadBtn.classList.add('opacity-50');
+                    try {
+                        const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
+                        const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
+                        if (!queryRes.ok) throw new Error('VOICEVOX に接続できません');
+                        const query = await queryRes.json();
+                        const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) });
+                        if (!synthRes.ok) throw new Error('音声の生成に失敗しました');
+                        const blob = await synthRes.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `voice_${String(index + 1).padStart(3, '0')}_${char.replace(/[/\\?*:|"]/g, '_')}.wav`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    } catch (e) {
+                        console.error(e);
+                        alert('ダウンロードに失敗しました。VOICEVOX Engine が起動しているか確認してください。');
+                    } finally {
+                        downloadBtn.disabled = false;
+                        downloadBtn.classList.remove('opacity-50');
+                    }
                 };
 
                 lineDiv.appendChild(charInput);
                 lineDiv.appendChild(lineInput);
                 lineDiv.appendChild(copyButton);
+                lineDiv.appendChild(downloadBtn);
                 scriptEditor.appendChild(lineDiv);
             });
         }
@@ -828,6 +1023,13 @@
         function stopFullAd() {
             isPlaying = false;
             synth.cancel();
+            if (currentVoicevoxAudio) {
+                currentVoicevoxAudio.onended = null;
+                currentVoicevoxAudio.onerror = null;
+                currentVoicevoxAudio.pause();
+                currentVoicevoxAudio.src = '';
+                currentVoicevoxAudio = null;
+            }
             if (imageSlideshowInterval) {
                 clearInterval(imageSlideshowInterval);
                 imageSlideshowInterval = null;
@@ -841,29 +1043,97 @@
             }
         }
 
-        function speakFullAd() {
+        // ブラウザの音声が「喋り終わった」と判定されるまで待つ（onend が早く出る場合の対策）
+        function waitUntilSpeechEnd() {
+            return new Promise(resolve => {
+                const check = () => {
+                    if (!isPlaying) { resolve(); return; }
+                    if (!synth.speaking) {
+                        setTimeout(() => resolve(), 200);
+                        return;
+                    }
+                    setTimeout(check, 100);
+                };
+                check();
+            });
+        }
+
+        async function speakFullAd() {
             if (currentLineIndex >= generatedDialogue.length || !isPlaying) {
                 stopFullAd();
                 return;
             }
+            lineAdvanceScheduled = false;
+
             const item = generatedDialogue[currentLineIndex];
+            if (!item.line || !String(item.line).trim()) {
+                currentLineIndex++;
+                setTimeout(speakFullAd, 0);
+                return;
+            }
+            const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
+
+            if (useVoicevox && voicevoxSpeakers.length > 0) {
+                const speakerId = characterVoicevoxIds[item.character] ?? voicevoxSpeakers[0].id;
+                try {
+                    const blobUrl = await voicevoxSynthesize(item.line, speakerId);
+                    if (!isPlaying) return;
+                    if (currentVoicevoxAudio) {
+                        currentVoicevoxAudio.onended = null;
+                        currentVoicevoxAudio.onerror = null;
+                        currentVoicevoxAudio.pause();
+                        currentVoicevoxAudio.src = '';
+                        currentVoicevoxAudio = null;
+                    }
+                    currentVoicevoxAudio = new Audio(blobUrl);
+                    currentVoicevoxAudio.onended = () => {
+                        if (lineAdvanceScheduled) return;
+                        lineAdvanceScheduled = true;
+                        URL.revokeObjectURL(blobUrl);
+                        currentLineIndex++;
+                        setTimeout(speakFullAd, 350);
+                    };
+                    currentVoicevoxAudio.onerror = (e) => {
+                        if (lineAdvanceScheduled) return;
+                        lineAdvanceScheduled = true;
+                        console.error('VOICEVOX playback error', e);
+                        URL.revokeObjectURL(blobUrl);
+                        currentLineIndex++;
+                        setTimeout(speakFullAd, 350);
+                    };
+                    currentVoicevoxAudio.play();
+                } catch (e) {
+                    console.error('VOICEVOX synthesize error', e);
+                    currentLineIndex++;
+                    setTimeout(speakFullAd, 500);
+                }
+                return;
+            }
+
+            synth.cancel();
             const utterance = new SpeechSynthesisUtterance(item.line);
-            
             if (characterVoices[item.character]) {
                 utterance.voice = characterVoices[item.character];
             } else {
                 const firstVoice = japaneseVoices[0];
                 if (firstVoice) utterance.voice = firstVoice;
             }
-            
             utterance.onend = () => {
-                currentLineIndex++;
-                setTimeout(speakFullAd, 500);
+                if (lineAdvanceScheduled) return;
+                lineAdvanceScheduled = true;
+                waitUntilSpeechEnd().then(() => {
+                    currentLineIndex++;
+                    speakFullAd();
+                });
             };
             utterance.onerror = (e) => {
-                console.error('SpeechSynthesisUtterance.onerror', e, 'Skipping to next line.');
-                currentLineIndex++;
-                setTimeout(speakFullAd, 500);
+                if (lineAdvanceScheduled) return;
+                lineAdvanceScheduled = true;
+                console.error('SpeechSynthesisUtterance.onerror', e);
+                waitUntilSpeechEnd().then(() => {
+                    currentLineIndex++;
+                    speakFullAd();
+                });
             };
             synth.speak(utterance);
         }
@@ -881,13 +1151,14 @@
             reader.onload = (e) => {
                 const text = e.target.result;
                 const dialogue = parseCSV(text);
-                
-                // Clear inputs
+                if (!dialogue || dialogue.length === 0) {
+                    alert('CSVに有効な台本が含まれていません。1行目は見出し（character,line）、2行目以降に「キャラ名,セリフ」を記載してください。');
+                    event.target.value = '';
+                    return;
+                }
                 clearFilesBtn.click();
                 urlInput.value = '';
                 scenarioDetail.value = 'CSVからインポートしました';
-                
-                // Display results
                 displayResults({ dialogue });
                 resultSection.scrollIntoView({ behavior: 'smooth' });
             };
@@ -911,6 +1182,105 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         });
+
+        downloadFullAudioBtn.addEventListener('click', async () => {
+            const dialogue = parseScriptFromEditor();
+            if (dialogue.length === 0) {
+                alert('台本がありません。');
+                return;
+            }
+            const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
+            if (!useVoicevox || voicevoxSpeakers.length === 0) {
+                alert('「音声をまとめてダウンロード」は VOICEVOX 選択時のみ利用できます。');
+                return;
+            }
+            const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
+            const GAP_SEC = 0.2;
+            downloadFullAudioBtn.disabled = true;
+            downloadFullAudioBtn.textContent = '生成中...';
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const buffers = [];
+                let sampleRate = 24000;
+                let numChannels = 1;
+                for (let i = 0; i < dialogue.length; i++) {
+                    const d = dialogue[i];
+                    const speakerId = characterVoicevoxIds[d.character] ?? voicevoxSpeakers[0].id;
+                    const text = d.line.trim();
+                    if (!text) continue;
+                    const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
+                    if (!queryRes.ok) throw new Error(`行 ${i + 1} の取得に失敗`);
+                    const query = await queryRes.json();
+                    const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) });
+                    if (!synthRes.ok) throw new Error(`行 ${i + 1} の音声生成に失敗`);
+                    const blob = await synthRes.blob();
+                    const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+                    sampleRate = buf.sampleRate;
+                    numChannels = buf.numberOfChannels;
+                    buffers.push(buf);
+                }
+                if (buffers.length === 0) throw new Error('有効なセリフがありません');
+                sampleRate = buffers[0].sampleRate;
+                numChannels = buffers[0].numberOfChannels;
+                const totalSamples = buffers.reduce((acc, b) => acc + b.length, 0) + Math.round(GAP_SEC * sampleRate) * (buffers.length - 1);
+                const offline = new OfflineAudioContext(numChannels, totalSamples, sampleRate);
+                let offset = 0;
+                for (let i = 0; i < buffers.length; i++) {
+                    const src = offline.createBufferSource();
+                    src.buffer = buffers[i];
+                    src.connect(offline.destination);
+                    src.start(offset);
+                    offset += buffers[i].length / sampleRate + GAP_SEC;
+                }
+                const rendered = await offline.startRendering();
+                const wav = audioBufferToWav(rendered);
+                const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'script_full_audio.wav';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error(e);
+                alert('まとめてダウンロードに失敗しました。' + (e.message || ''));
+            } finally {
+                downloadFullAudioBtn.disabled = false;
+                downloadFullAudioBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>音声をまとめてダウンロード`;
+            }
+        });
+
+        function audioBufferToWav(buffer) {
+            const numCh = buffer.numberOfChannels;
+            const sr = buffer.sampleRate;
+            const length = buffer.length * numCh * 2;
+            const arrayBuffer = new ArrayBuffer(44 + length);
+            const view = new DataView(arrayBuffer);
+            const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+            writeStr(0, 'RIFF');
+            view.setUint32(4, 36 + length, true);
+            writeStr(8, 'WAVE');
+            writeStr(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numCh, true);
+            view.setUint32(24, sr, true);
+            view.setUint32(28, sr * numCh * 2, true);
+            view.setUint16(32, numCh * 2, true);
+            view.setUint16(34, 16, true);
+            writeStr(36, 'data');
+            view.setUint32(40, length, true);
+            let pos = 44;
+            for (let i = 0; i < buffer.length; i++) {
+                for (let ch = 0; ch < numCh; ch++) {
+                    const v = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+                    view.setInt16(pos, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
+                    pos += 2;
+                }
+            }
+            return arrayBuffer;
+        }
 
         function parseCSV(csvText) {
             const lines = csvText.split('\n').filter(l => l.trim());
@@ -986,6 +1356,25 @@
             }
         });
 
+        // PWA: 常に最新版で開く（Service Worker 登録・更新時リロード）
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+                .then((reg) => {
+                    reg.onupdatefound = () => {
+                        const newWorker = reg.installing;
+                        newWorker.onstatechange = () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        };
+                    };
+                    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                })
+                .catch((err) => console.warn('Service Worker 登録失敗:', err));
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+        }
     </script>
 </body>
 </html>

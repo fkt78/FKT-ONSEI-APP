@@ -1,0 +1,14 @@
+# Firebase デプロイ時にアップロードしないファイル
+.git
+.gitignore
+.firebaserc
+.firebase
+firebase.json
+.firebaseignore
+README.md
+README.txt
+push-to-github.sh
+GitHubに保存する方法.txt
+起動サーバー9000.command
+**/.DS_Store
+**/*.log

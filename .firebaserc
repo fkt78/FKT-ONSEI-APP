@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "hattyuu-kanri-app-test"
+  },
+  "targets": {
+    "hattyuu-kanri-app-test": {
+      "hosting": {
+        "onsei-app": [
+          "onsei-app-999b5"
+        ]
+      }
+    }
+  }
+}
