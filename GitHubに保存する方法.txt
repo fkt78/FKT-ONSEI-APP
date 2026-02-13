@@ -1,0 +1,33 @@
+■ このフォルダを GitHub (fkt78/FKT-ONSEI-APP) に保存する方法
+
+【方法1】スクリプトを実行（推奨）
+
+1. Mac の「ターミナル」アプリを開く（Spotlight で「ターミナル」と検索）
+2. 次のコマンドを実行（1行目でこのフォルダに移動し、2行目で実行）:
+
+   cd ~/ai-ad-generator
+   ./push-to-github.sh
+
+3. 初回は GitHub のログイン（またはトークン）を求められることがあります。
+4. 完了後、ブラウザで https://github.com/fkt78/FKT-ONSEI-APP を開いて確認してください。
+
+
+【方法2】コマンドを1行ずつ手動で実行（失敗した箇所を確認したい場合）
+
+ターミナルで以下を1行ずつ実行してください。エラーが出た行をメモしておくと原因を特定しやすくなります。
+
+cd ~/ai-ad-generator
+git init
+git remote add origin https://github.com/fkt78/FKT-ONSEI-APP.git
+git add .
+git commit -m "AI動画広告ジェネレーター（音声ファイル作成アプリ）"
+git branch -M main
+git push -u origin main
+
+
+※ 「fatal: not a git repository」が出る場合
+  → まず「git init」が成功しているか確認してください。成功すると「Initialized empty Git repository in ...」と表示されます。
+  → 表示されない場合は、同じフォルダで「ls -la」を実行し、.git が作成されているか確認してください。
+
+※ リポジトリが既に存在し、別の履歴がある場合は「git pull origin main --rebase」で取り込んでから push するか、force push が必要になる場合があります。
+※ Cursor 内のターミナルでは .git の作成が制限されているため、必ず Mac 標準の「ターミナル」で実行してください。
