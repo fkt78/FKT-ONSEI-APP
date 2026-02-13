@@ -130,9 +130,26 @@
                  <input type="url" id="url-input" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="https://example.com">
             </div>
 
-            <!-- Step 2: Scenario Atmosphere & Format -->
+            <!-- Step 2: 何を作るか -->
             <div class="mt-8 mb-8">
-                <h2 class="text-2xl font-bold mb-4 border-b pb-2">ステップ2：台本の雰囲気と形式</h2>
+                <h2 class="text-2xl font-bold mb-4 border-b pb-2">ステップ2：何を作りますか？</h2>
+                <div class="flex gap-4 mb-6">
+                    <label class="flex items-center gap-2 p-4 border-2 rounded-lg cursor-pointer flex-1 hover:bg-blue-50 border-blue-200 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
+                        <input type="radio" name="output-mode" value="voice" checked class="form-radio h-5 w-5 text-blue-600">
+                        <span class="font-semibold">音声を作る</span>
+                        <span class="text-sm text-gray-500">台本を生成し、音声で再生・ダウンロード</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-4 border-2 rounded-lg cursor-pointer flex-1 hover:bg-amber-50 border-amber-200 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                        <input type="radio" name="output-mode" value="poster" class="form-radio h-5 w-5 text-amber-600">
+                        <span class="font-semibold">ポスターを作る</span>
+                        <span class="text-sm text-gray-500">画像を生成し、ポスターとしてダウンロード</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Voice flow: Step 2 scenario + Step 3 + Generate -->
+            <div id="voice-flow" class="mt-8 mb-8">
+                <h2 class="text-2xl font-bold mb-4 border-b pb-2">台本の雰囲気と形式</h2>
                 <div class="mb-4">
                     <label class="block mb-2 font-semibold text-gray-700">雰囲気や形式を選択（複数可）:</label>
                     <div id="scenario-checkboxes" class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -286,11 +303,58 @@
                 </div>
             </div>
 
-            <!-- Generate Button -->
+            <!-- Generate Button (Voice) -->
             <div class="text-center">
                 <button id="generate-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-all shadow-md text-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
                     広告素材を生成
                 </button>
+            </div>
+            </div>
+
+            <!-- Poster flow -->
+            <div id="poster-flow" class="mt-8 mb-8 hidden">
+                <h2 class="text-2xl font-bold mb-4 border-b pb-2">ポスターの設定</h2>
+                <div class="mb-4">
+                    <label class="block mb-2 font-semibold text-gray-700">トーン・マナー（複数可）:</label>
+                    <div id="poster-tone-checkboxes" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="フォーマルで上品な" class="form-checkbox text-amber-600"><span>フォーマル</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="カジュアルで親しみやすい" class="form-checkbox text-amber-600"><span>カジュアル</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="プロフェッショナルで信頼感のある" class="form-checkbox text-amber-600"><span>プロフェッショナル</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="ポップで明るい" class="form-checkbox text-amber-600"><span>ポップ</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="落ち着いた雰囲気の" class="form-checkbox text-amber-600"><span>落ち着いた</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="元気で活力のある" class="form-checkbox text-amber-600"><span>元気</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="高級感のある" class="form-checkbox text-amber-600"><span>高級感</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="シンプルでミニマルな" class="form-checkbox text-amber-600"><span>シンプル</span></label>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block mb-2 font-semibold text-gray-700">強調したいこと（複数可）:</label>
+                    <div id="poster-emphasis-checkboxes" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="新商品・新サービス" class="form-checkbox text-amber-600"><span>新商品</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="価格・お得感" class="form-checkbox text-amber-600"><span>価格</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="期間限定" class="form-checkbox text-amber-600"><span>期間限定</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="品質・こだわり" class="form-checkbox text-amber-600"><span>品質</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="ブランド・信頼" class="form-checkbox text-amber-600"><span>ブランド</span></label>
+                        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-amber-50"><input type="checkbox" value="キャンペーン・特典" class="form-checkbox text-amber-600"><span>キャンペーン</span></label>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="poster-size" class="block mb-2 font-semibold text-gray-700">出力サイズ:</label>
+                    <select id="poster-size" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition">
+                        <option value="3:4">A4縦 (3:4)</option>
+                        <option value="4:3">A4横 (4:3)</option>
+                        <option value="2:3">A3縦 (2:3)</option>
+                        <option value="3:2">A3横 (3:2)</option>
+                        <option value="1:1">1:1 (SNS・正方形)</option>
+                        <option value="16:9">16:9 (横長)</option>
+                        <option value="9:16">9:16 (縦長)</option>
+                    </select>
+                </div>
+                <div class="text-center">
+                    <button id="generate-poster-btn" class="bg-amber-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-amber-600 transition-all shadow-md text-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        ポスターを生成
+                    </button>
+                </div>
             </div>
 
             <!-- Loading Indicator -->
@@ -408,6 +472,75 @@
                         <li>広告の再生が終わったら、画面上部の■（停止）ボタンを押して収録を終了します。デスクトップに動画ファイルが保存されます。</li>
                     </ol>
                 </div>
+
+                <!-- アプリの仕様 -->
+                <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                    <button type="button" id="spec-toggle-btn" class="w-full text-left flex items-center justify-between font-bold text-slate-800 text-lg">
+                        <span>アプリの仕様</span>
+                        <span id="spec-toggle-icon" class="text-slate-500">▼</span>
+                    </button>
+                    <div id="spec-content" class="hidden mt-4 text-sm text-slate-700 space-y-4">
+                        <section>
+                            <h4 class="font-bold text-slate-800 mb-1">概要</h4>
+                            <p>画像・URL・ファイルからAI（Gemini）で台本を生成し、ブラウザ音声またはVOICEVOXで再生。CSV入出力・翻訳・行単位/全体の音声ダウンロード・BGM付きダウンロードに対応。</p>
+                        </section>
+                        <section>
+                            <h4 class="font-bold text-slate-800 mb-1">台本編集</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>「下にセリフ」：その行の直下にセリフ行を挿入（キャラ名・セリフを入力するとそのメンバーが読み上げ）。</li>
+                                <li>「行を追加」：末尾にセリフ行を追加。</li>
+                                <li>「削除」：その行を削除（最後の1行は削除不可）。</li>
+                                <li>キャラ名は話者の設定に合わせると、その声で再生される。</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 class="font-bold text-slate-800 mb-1">音声</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>ブラウザの音声：台本のキャラごとにブラウザの日本語音声を選択可能。</li>
+                                <li>VOICEVOX：同じPCでVOICEVOX Engine（localhost:50021）を起動し、http://localhost:9000 でアプリを開いた場合に利用可能。オンライン（HTTPS）で開いた場合はVOICEVOXは使えない。</li>
+                                <li>音声をまとめてダウンロード：VOICEVOX選択時、全行を1本のWAVでダウンロード。</li>
+                                <li>BGMを付けてダウンロード：VOICEVOX音声にBGMファイルを混ぜてダウンロード。BGMはループし、音声の終わりでフェードアウト。</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 class="font-bold text-slate-800 mb-1">API・データ</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Gemini APIキー：画面上で入力・保存（localStorage）。台本生成・翻訳に使用。</li>
+                                <li>CSV：インポート（character,line形式）・エクスポート対応。</li>
+                            </ul>
+                        </section>
+                        <section>
+                            <h4 class="font-bold text-slate-800 mb-1">PWA</h4>
+                            <p>インストール可能。常に最新版で開くため、Service Workerでネットワーク優先・更新時リロードを実施。</p>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Poster Result Section -->
+            <div id="result-section-poster" class="hidden mt-10">
+                <h2 class="text-2xl font-bold mb-6 text-center">🎉 ポスターが完成しました！ 🎉</h2>
+                <div class="bg-amber-50 p-6 rounded-lg border border-amber-200">
+                    <div id="poster-image-container" class="mb-4 flex justify-center relative">
+                        <canvas id="poster-canvas" class="hidden max-w-full rounded-lg shadow-lg"></canvas>
+                        <img id="poster-result-image" alt="生成されたポスター" class="max-w-full rounded-lg shadow-lg">
+                    </div>
+                    <div class="mb-4 p-4 bg-white rounded-lg border border-amber-200">
+                        <p class="text-sm text-gray-700 mb-2 font-semibold">表示する文言（文字化け対策・任意）</p>
+                        <p class="text-xs text-gray-500 mb-2">ここに入力した文言をポスターに重ねて表示・ダウンロードできます。AIが画像内に描いた文字が化けている場合にご利用ください。</p>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input type="text" id="poster-overlay-text" placeholder="例：期間限定！" class="flex-1 min-w-[200px] p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            <button type="button" id="poster-apply-overlay-btn" class="px-4 py-2 bg-amber-100 text-amber-800 font-semibold rounded-lg hover:bg-amber-200 transition">反映して表示</button>
+                            <button type="button" id="poster-clear-overlay-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">クリア</button>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <button id="download-poster-btn" class="bg-amber-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-amber-600 transition-all shadow-md inline-flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>
+                            ポスターをダウンロード
+                        </button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -449,6 +582,16 @@
         const bgmVolumeSlider = document.getElementById('bgm-volume-slider');
         const bgmVolumeValue = document.getElementById('bgm-volume-value');
         const downloadWithBgmBtn = document.getElementById('download-with-bgm-btn');
+        const voiceFlow = document.getElementById('voice-flow');
+        const posterFlow = document.getElementById('poster-flow');
+        const resultSectionPoster = document.getElementById('result-section-poster');
+        const posterResultImage = document.getElementById('poster-result-image');
+        const posterCanvas = document.getElementById('poster-canvas');
+        const posterOverlayText = document.getElementById('poster-overlay-text');
+        const posterApplyOverlayBtn = document.getElementById('poster-apply-overlay-btn');
+        const posterClearOverlayBtn = document.getElementById('poster-clear-overlay-btn');
+        const generatePosterBtn = document.getElementById('generate-poster-btn');
+        const downloadPosterBtn = document.getElementById('download-poster-btn');
 
         // App State
         let currentMode = 'file';
@@ -467,6 +610,18 @@
         let characterVoicevoxIds = {}; // キャラ名 -> VOICEVOX スピーカーID（スタイルID）
         let currentVoicevoxAudio = null; // 再生中の Audio（停止用）
         let lineAdvanceScheduled = false; // 1行につき1回だけ次に進むためのフラグ（句読点で onend が複数回出る対策）
+        let currentPosterDataUrl = null; // ポスター画像の Data URL（ダウンロード用）
+
+        // 音声 / ポスター分岐
+        document.querySelectorAll('input[name="output-mode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const isPoster = e.target.value === 'poster';
+                voiceFlow.classList.toggle('hidden', isPoster);
+                posterFlow.classList.toggle('hidden', !isPoster);
+                resultSection.classList.add('hidden');
+                resultSectionPoster.classList.add('hidden');
+            });
+        });
 
         // Speech Synthesis Setup
         const synth = window.speechSynthesis;
@@ -691,6 +846,217 @@
                 loading.classList.remove('flex');
                 generateBtn.disabled = false;
             }
+        });
+
+        // ポスター生成
+        generatePosterBtn.addEventListener('click', async () => {
+            if (!GEMINI_API_KEY || !GEMINI_API_KEY.trim()) {
+                alert('Gemini APIキーが設定されていません。コード内の GEMINI_API_KEY を設定してください。');
+                return;
+            }
+            let sourceSummary = '';
+            if (currentMode === 'url') {
+                if (!urlInput.value.trim()) {
+                    alert('URLを入力してください。');
+                    return;
+                }
+                try {
+                    loading.classList.remove('hidden');
+                    loading.classList.add('flex');
+                    loadingText.textContent = 'URLの内容を読み取っています...';
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+                    const res = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `次のURLのウェブページの内容を要約し、広告ポスターのテーマとして使える短い説明（日本語・2〜3文）で返してください。\nURL: ${urlInput.value.trim()}` }] }]
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                        sourceSummary = data.candidates[0].content.parts[0].text.trim();
+                    } else {
+                        sourceSummary = 'このURLの内容を元にした広告';
+                    }
+                } catch (e) {
+                    console.error(e);
+                    sourceSummary = 'このURLの内容を元にした広告';
+                }
+            } else {
+                if (sourceFiles.length === 0) {
+                    alert('ファイルをアップロードするか、URLを入力してください。');
+                    loading.classList.add('hidden');
+                    loading.classList.remove('flex');
+                    return;
+                }
+                const texts = sourceFiles.filter(f => f.text).map(f => f.text);
+                sourceSummary = texts.length > 0 ? texts.join('\n').slice(0, 1500) : 'アップロードされた素材を元にした広告';
+            }
+
+            const toneEls = document.querySelectorAll('#poster-tone-checkboxes input[type="checkbox"]:checked');
+            const toneText = toneEls.length ? Array.from(toneEls).map(cb => cb.value).join('、') : 'バランスの取れた';
+            const emphasisEls = document.querySelectorAll('#poster-emphasis-checkboxes input[type="checkbox"]:checked');
+            const emphasisText = emphasisEls.length ? Array.from(emphasisEls).map(cb => cb.value).join('、') : '';
+            const aspectRatio = document.getElementById('poster-size').value;
+
+            const imagePrompt = `Create a single, professional advertising poster image (Japanese-friendly design). 
+Theme/source: ${sourceSummary}
+Tone and manner: ${toneText}
+${emphasisText ? `Emphasize: ${emphasisText}.` : ''}
+IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the image. No Japanese, no English, no numbers. Visual design only (illustration, colors, shapes, photos). Text will be added separately. Output only the image.`;
+
+            const parts = [{ text: imagePrompt }];
+            if (currentMode === 'file') {
+                const imageFiles = sourceFiles.filter(f => f.fileType === 'image');
+                for (const file of imageFiles.slice(0, 2)) {
+                    parts.push({ inline_data: { mime_type: (file.base64 || '').match(/data:([^;]+)/)?.[1] || 'image/png', data: (file.base64 || '').split(',')[1] } });
+                }
+            }
+
+            resultSectionPoster.classList.add('hidden');
+            generatePosterBtn.disabled = true;
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+            loadingText.textContent = 'ポスターを生成中です... (数十秒かかることがあります)';
+            try {
+                const modelId = 'gemini-2.5-flash-image';
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
+                const payload = {
+                    contents: [{ parts }],
+                    generationConfig: {
+                        responseModalities: ['TEXT', 'IMAGE'],
+                        imageConfig: {
+                            aspectRatio: aspectRatio,
+                            imageSize: '2K'
+                        }
+                    }
+                };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const result = await response.json();
+                if (!response.ok) {
+                    const errMsg = result.error && result.error.message ? result.error.message : response.statusText;
+                    throw new Error(`APIエラー: ${errMsg}`);
+                }
+                let imageData = null;
+                if (result.candidates && result.candidates[0].content.parts) {
+                    for (const part of result.candidates[0].content.parts) {
+                        if (part.inlineData && part.inlineData.data) {
+                            const mime = part.inlineData.mimeType || 'image/png';
+                            imageData = `data:${mime};base64,${part.inlineData.data}`;
+                            break;
+                        }
+                    }
+                }
+                if (!imageData) {
+                    throw new Error('画像が返されませんでした。別のモデルやプロンプトでお試しください。');
+                }
+                currentPosterDataUrl = imageData;
+                posterResultImage.src = imageData;
+                posterOverlayText.value = '';
+                posterCanvas.classList.add('hidden');
+                posterResultImage.classList.remove('hidden');
+                resultSectionPoster.classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                alert(error && error.message ? error.message : 'ポスターの生成に失敗しました。');
+            } finally {
+                loading.classList.add('hidden');
+                loading.classList.remove('flex');
+                generatePosterBtn.disabled = false;
+            }
+        });
+
+        function drawPosterWithOverlay(imageDataUrl, text, canvasEl, onDone) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                canvasEl.width = img.naturalWidth;
+                canvasEl.height = img.naturalHeight;
+                const ctx = canvasEl.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                if (text && text.trim()) {
+                    const fontSize = Math.max(32, Math.min(canvasEl.width, canvasEl.height) / 10);
+                    ctx.font = `bold ${fontSize}px "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const x = canvasEl.width / 2;
+                    const y = canvasEl.height * 0.85;
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = fontSize / 8;
+                    ctx.strokeText(text.trim(), x, y);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(text.trim(), x, y);
+                }
+                if (onDone) onDone();
+            };
+            img.onerror = () => { if (onDone) onDone(); };
+            img.src = imageDataUrl;
+        }
+
+        posterApplyOverlayBtn.addEventListener('click', () => {
+            const text = posterOverlayText.value.trim();
+            if (!currentPosterDataUrl) return;
+            if (!text) {
+                posterCanvas.classList.add('hidden');
+                posterResultImage.classList.remove('hidden');
+                posterResultImage.src = currentPosterDataUrl;
+                return;
+            }
+            drawPosterWithOverlay(currentPosterDataUrl, text, posterCanvas, () => {
+                posterCanvas.classList.remove('hidden');
+                posterResultImage.classList.add('hidden');
+            });
+        });
+
+        posterClearOverlayBtn.addEventListener('click', () => {
+            posterOverlayText.value = '';
+            posterCanvas.classList.add('hidden');
+            posterResultImage.classList.remove('hidden');
+            posterResultImage.src = currentPosterDataUrl || '';
+        });
+
+        downloadPosterBtn.addEventListener('click', () => {
+            if (!currentPosterDataUrl) return;
+            const text = posterOverlayText.value.trim();
+            let dataUrl = currentPosterDataUrl;
+            if (text && posterCanvas.classList.contains('hidden')) {
+                const img = new Image();
+                img.onload = () => {
+                    posterCanvas.width = img.naturalWidth;
+                    posterCanvas.height = img.naturalHeight;
+                    const ctx = posterCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const fontSize = Math.max(32, Math.min(posterCanvas.width, posterCanvas.height) / 10);
+                    ctx.font = `bold ${fontSize}px "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const x = posterCanvas.width / 2;
+                    const y = posterCanvas.height * 0.85;
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = fontSize / 8;
+                    ctx.strokeText(text, x, y);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(text, x, y);
+                    const out = posterCanvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = out;
+                    a.download = `poster_${Date.now()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+                img.src = currentPosterDataUrl;
+                return;
+            }
+            if (text && !posterCanvas.classList.contains('hidden')) {
+                dataUrl = posterCanvas.toDataURL('image/png');
+            }
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `poster_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         });
 
         // Gemini API Call
@@ -1547,6 +1913,13 @@
                 loading.classList.remove('flex');
                 translateBtn.disabled = false;
             }
+        });
+
+        document.getElementById('spec-toggle-btn').addEventListener('click', () => {
+            const content = document.getElementById('spec-content');
+            const icon = document.getElementById('spec-toggle-icon');
+            content.classList.toggle('hidden');
+            icon.textContent = content.classList.contains('hidden') ? '▼' : '▲';
         });
 
         // PWA: 常に最新版で開く（Service Worker 登録・更新時リロード）
