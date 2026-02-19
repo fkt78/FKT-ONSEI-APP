@@ -416,6 +416,11 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
                                     ここから再生
                                 </button>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-sm font-medium text-gray-700">保存形式:</span>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="wav" checked> WAV</label>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp4"> MP4</label>
+                                </div>
                                 <button id="download-full-audio-btn" class="flex-1 min-w-[140px] bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center text-lg">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>
                                     音声をまとめてダウンロード
@@ -428,7 +433,7 @@
                             <!-- BGMを付けてダウンロード -->
                             <div id="bgm-download-section" class="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
                                 <h4 class="font-bold text-gray-800 mb-3">BGMを付けてダウンロード</h4>
-                                <p class="text-sm text-gray-600 mb-3">VOICEVOXで作った音声にBGMを混ぜて1本のWAVで保存できます。BGMは音声が長い間ループ再生され、音声の終わりに合わせてフェードアウトします。</p>
+                                <p class="text-sm text-gray-600 mb-3">VOICEVOXで作った音声にBGMを混ぜて1本のファイルで保存できます（上で選択した保存形式：WAV/MP4）。BGMは音声が長い間ループ再生され、音声の終わりに合わせてフェードアウトします。</p>
                                 <div class="flex flex-wrap items-end gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">BGMファイル（MP3/WAV）</label>
@@ -498,8 +503,8 @@
                             <ul class="list-disc list-inside space-y-1">
                                 <li>ブラウザの音声：台本のキャラごとにブラウザの日本語音声を選択可能。</li>
                                 <li>VOICEVOX：同じPCでVOICEVOX Engine（localhost:50021）を起動し、http://localhost:9000 でアプリを開いた場合に利用可能。オンライン（HTTPS）で開いた場合はVOICEVOXは使えない。</li>
-                                <li>音声をまとめてダウンロード：VOICEVOX選択時、全行を1本のWAVでダウンロード。</li>
-                                <li>BGMを付けてダウンロード：VOICEVOX音声にBGMファイルを混ぜてダウンロード。BGMはループし、音声の終わりでフェードアウト。</li>
+                                <li>音声をまとめてダウンロード：VOICEVOX選択時、全行を1本のファイルでダウンロード（保存形式でWAVまたはMP4を選択可能）。</li>
+                                <li>BGMを付けてダウンロード：VOICEVOX音声にBGMファイルを混ぜてダウンロード（WAV/MP4選択可）。BGMはループし、音声の終わりでフェードアウト。</li>
                             </ul>
                         </section>
                         <section>
@@ -1359,10 +1364,23 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                         const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(query) });
                         if (!synthRes.ok) throw new Error('音声の生成に失敗しました');
                         const blob = await synthRes.blob();
-                        const url = URL.createObjectURL(blob);
+                        const format = document.querySelector('input[name="download-format"]:checked');
+                        const useMp4 = format && format.value === 'mp4';
+                        const baseName = `voice_${String(index + 1).padStart(3, '0')}_${char.replace(/[/\\?*:|"]/g, '_')}`;
+                        let url, downloadName;
+                        if (useMp4) {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+                            const mp4Blob = await audioBufferToMp4Blob(buf);
+                            url = URL.createObjectURL(mp4Blob);
+                            downloadName = baseName + '.mp4';
+                        } else {
+                            url = URL.createObjectURL(blob);
+                            downloadName = baseName + '.wav';
+                        }
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `voice_${String(index + 1).padStart(3, '0')}_${char.replace(/[/\\?*:|"]/g, '_')}.wav`;
+                        a.download = downloadName;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -1681,11 +1699,20 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                     offset += buffers[i].length / sampleRate + GAP_SEC;
                 }
                 const rendered = await offline.startRendering();
-                const wav = audioBufferToWav(rendered);
-                const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+                const format = document.querySelector('input[name="download-format"]:checked').value;
+                let blob, filename;
+                if (format === 'mp4') {
+                    blob = await audioBufferToMp4Blob(rendered);
+                    filename = 'script_full_audio.mp4';
+                } else {
+                    const wav = audioBufferToWav(rendered);
+                    blob = new Blob([wav], { type: 'audio/wav' });
+                    filename = 'script_full_audio.wav';
+                }
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'script_full_audio.wav';
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1792,11 +1819,20 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 bgmSrc.start(0);
 
                 const mixed = await offlineMix.startRendering();
-                const wav = audioBufferToWav(mixed);
-                const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+                const format = document.querySelector('input[name="download-format"]:checked').value;
+                let blob, filename;
+                if (format === 'mp4') {
+                    blob = await audioBufferToMp4Blob(mixed);
+                    filename = 'script_full_audio_with_bgm.mp4';
+                } else {
+                    const wav = audioBufferToWav(mixed);
+                    blob = new Blob([wav], { type: 'audio/wav' });
+                    filename = 'script_full_audio_with_bgm.wav';
+                }
+                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'script_full_audio_with_bgm.wav';
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1839,6 +1875,42 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 }
             }
             return arrayBuffer;
+        }
+
+        /** AudioBuffer を MediaRecorder で MP4（または M4A）Blob に変換 */
+        function audioBufferToMp4Blob(audioBuffer) {
+            return new Promise((resolve, reject) => {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const dest = ctx.createMediaStreamDestination();
+                const src = ctx.createBufferSource();
+                src.buffer = audioBuffer;
+                src.connect(dest);
+                let stream = dest.stream;
+                let mimeType = 'audio/mp4';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/mp4';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        reject(new Error('MP4形式はこのブラウザではサポートされていません。WAVで保存してください。'));
+                        return;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 360;
+                    const g = canvas.getContext('2d');
+                    g.fillStyle = '#000';
+                    g.fillRect(0, 0, canvas.width, canvas.height);
+                    const videoStream = canvas.captureStream(0);
+                    stream = new MediaStream([...dest.stream.getAudioTracks(), ...videoStream.getVideoTracks()]);
+                }
+                const recorder = new MediaRecorder(stream, { mimeType });
+                const chunks = [];
+                recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+                recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+                recorder.onerror = (e) => reject(e.error || new Error('MP4の録音に失敗しました'));
+                recorder.start(100);
+                src.onended = () => recorder.stop();
+                src.start(0);
+            });
         }
 
         function parseCSV(csvText) {
