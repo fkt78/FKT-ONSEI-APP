@@ -396,7 +396,7 @@
                              <div id="voice-selectors" class="space-y-2"></div>
                         </div>
                         <h3 class="text-xl font-bold mb-3">生成された台本（編集可能）</h3>
-                        <p class="text-sm text-gray-600 mb-2">任意の位置に「下にセリフ」で行を挿入し、キャラ名とセリフを入力するとそのメンバーが読み上げます。不要な行は「削除」で消せます。</p>
+                        <p class="text-sm text-gray-600 mb-2">1行＝1セリフとして、話者の最初の文字から最後の文字までしっかり録音されます。長いセリフは「句読点で分割」で。！？、の位置で同じ話者のまま複数行に分けてください（聞き取りやすくなります）。「下にセリフ」で行を挿入、「削除」で行を消せます。</p>
                         <div id="script-editor" class="w-full p-3 border border-gray-300 rounded-lg bg-white space-y-2"></div>
                         <div class="mt-4 p-4 border rounded-lg bg-white">
                              <h3 class="text-xl font-bold mb-3">ツール</h3>
@@ -412,9 +412,13 @@
                                 <button id="translate-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition-all text-sm flex-shrink-0">翻訳を実行</button>
                              </div>
                              <div class="flex flex-wrap gap-4">
-                                <button id="play-full-ad-btn" class="flex-1 min-w-[140px] bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md flex items-center justify-center text-lg">
+                                <button id="play-full-ad-btn" type="button" title="再生したい行のセリフ欄やキャラ名欄をクリックしてから押すと、その行から再生されます" class="flex-1 min-w-[140px] bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition-all shadow-md flex items-center justify-center text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
                                     ここから再生
+                                </button>
+                                <button id="stop-full-ad-btn" type="button" title="再生を停止します" class="flex-1 min-w-[140px] bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition-all shadow-md flex items-center justify-center text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-500" disabled>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>
+                                    停止
                                 </button>
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm font-medium text-gray-700">保存形式:</span>
@@ -493,6 +497,7 @@
                             <h4 class="font-bold text-slate-800 mb-1">台本編集</h4>
                             <ul class="list-disc list-inside space-y-1">
                                 <li>「下にセリフ」：その行の直下にセリフ行を挿入（キャラ名・セリフを入力するとそのメンバーが読み上げ）。</li>
+                                <li>「句読点で分割」：その行のセリフを句読点（。！？）で分割し、同じ話者で複数行にします。長いセリフをしゃべりきるために便利です。</li>
                                 <li>「行を追加」：末尾にセリフ行を追加。</li>
                                 <li>「削除」：その行を削除（最後の1行は削除不可）。</li>
                                 <li>キャラ名は話者の設定に合わせると、その声で再生される。</li>
@@ -570,6 +575,7 @@
         const imageCounter = document.getElementById('image-counter');
         const scriptEditor = document.getElementById('script-editor');
         const playFullAdBtn = document.getElementById('play-full-ad-btn');
+        const stopFullAdBtn = document.getElementById('stop-full-ad-btn');
         const voiceSelectors = document.getElementById('voice-selectors');
         const modeSelector = document.getElementById('mode-selector');
         const fileInputSection = document.getElementById('file-input-section');
@@ -613,8 +619,12 @@
         // VOICEVOX 用
         let voicevoxSpeakers = []; // { id, displayName } の配列（スタイル単位）
         let characterVoicevoxIds = {}; // キャラ名 -> VOICEVOX スピーカーID（スタイルID）
-        let currentVoicevoxAudio = null; // 再生中の Audio（停止用）
+        let currentVoicevoxAudio = null; // 再生中の Audio（停止用・後方互換）
+        let currentVoicevoxSource = null; // 再生中の BufferSource（停止用・正確な終了検知）
+        let playbackAudioContext = null; // VOICEVOX再生用の AudioContext
         let lineAdvanceScheduled = false; // 1行につき1回だけ次に進むためのフラグ（句読点で onend が複数回出る対策）
+        let lastFocusedRowIndex = 0; // 「ここから再生」用：最後にフォーカスした行
+        let playbackAbortController = null; // 再生停止時に fetch をキャンセルする用
         let currentPosterDataUrl = null; // ポスター画像の Data URL（ダウンロード用）
 
         // 音声 / ポスター分岐
@@ -704,15 +714,18 @@
             }
         }
 
-        async function voicevoxSynthesize(text, speakerId) {
+        async function voicevoxSynthesize(text, speakerId, signal) {
             const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
-            const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
+            const opts = { method: 'POST' };
+            if (signal) opts.signal = signal;
+            const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, opts);
             if (!queryRes.ok) throw new Error('VOICEVOX audio_query failed');
             const query = await queryRes.json();
             const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(query)
+                body: JSON.stringify(query),
+                ...(signal && { signal })
             });
             if (!synthRes.ok) throw new Error('VOICEVOX synthesis failed');
             const wavBlob = await synthRes.blob();
@@ -841,6 +854,14 @@
                 const jsonMatch = scriptText.match(/\{[\s\S]*\}/);
                 if (!jsonMatch) throw new Error("AI response did not contain valid JSON.");
                 const scriptData = JSON.parse(jsonMatch[0]);
+                // 台本の最後に「近くて便利 セブンイレブン」を必ず入れる
+                const closingPhrase = '近くて便利 セブンイレブン';
+                if (scriptData.dialogue && scriptData.dialogue.length > 0) {
+                    const last = scriptData.dialogue[scriptData.dialogue.length - 1];
+                    if (last.line !== closingPhrase) {
+                        scriptData.dialogue.push({ character: 'ナレーション', line: closingPhrase });
+                    }
+                }
                 displayResults(scriptData);
             } catch (error) {
                 console.error('Error:', error);
@@ -869,7 +890,7 @@
                     loading.classList.remove('hidden');
                     loading.classList.add('flex');
                     loadingText.textContent = 'URLの内容を読み取っています...';
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
                     const res = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1074,7 +1095,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             const payload = {
                 contents: [{ parts: parts }],
             };
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const result = await response.json();
             if (!response.ok) {
@@ -1147,7 +1168,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             if (!GEMINI_API_KEY || !GEMINI_API_KEY.trim()) {
                 throw new Error("Gemini APIキーが設定されていません。コード内の GEMINI_API_KEY を設定してください。");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const result = await response.json();
             if (!response.ok) {
@@ -1295,6 +1316,33 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             setupScriptEditor();
         }
 
+        /** この行のセリフを句読点（。！？改行）で分割し、同じ話者で複数行にする（しゃべりきるための仕様） */
+        function splitRowAtPunctuation(index) {
+            const d = parseScriptFromEditor();
+            if (index < 0 || index >= d.length) return;
+            const line = (d[index].line || '').trim();
+            if (!line) {
+                alert('セリフが空です。');
+                return;
+            }
+            const parts = line.split(/([。！？\n、]+)/);
+            const segments = [];
+            for (let i = 0; i < parts.length; i += 2) {
+                const s = ((parts[i] || '') + (parts[i + 1] || '')).trim();
+                if (s.length > 0) segments.push(s);
+            }
+            if (segments.length <= 1) {
+                alert('句読点（。！？、）や改行がありません。分割したい位置に。や、を入れてから押してください。');
+                return;
+            }
+            const character = (d[index].character || '').trim() || '話者';
+            const before = d.slice(0, index);
+            const after = d.slice(index + 1);
+            const newRows = segments.map(seg => ({ character, line: seg }));
+            generatedDialogue = [...before, ...newRows, ...after];
+            setupScriptEditor();
+        }
+
         function setupScriptEditor() {
             scriptEditor.innerHTML = '';
             generatedDialogue.forEach((item, index) => {
@@ -1302,6 +1350,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
 
                 const lineDiv = document.createElement('div');
                 lineDiv.className = 'flex items-center gap-2 flex-wrap';
+                lineDiv.setAttribute('data-index', index);
 
                 const charInput = document.createElement('input');
                 charInput.type = 'text';
@@ -1401,6 +1450,13 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 insertDialogueBtn.className = 'text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-800';
                 insertDialogueBtn.onclick = () => insertRowAfter(index);
 
+                const splitPunctBtn = document.createElement('button');
+                splitPunctBtn.type = 'button';
+                splitPunctBtn.textContent = '句読点で分割';
+                splitPunctBtn.title = 'この行のセリフを句読点（。！？）で分割し、同じ話者で複数行にします。長いセリフをしゃべりきるために便利です。';
+                splitPunctBtn.className = 'text-xs px-2 py-1 bg-amber-100 hover:bg-amber-200 rounded text-amber-800';
+                splitPunctBtn.onclick = () => splitRowAtPunctuation(index);
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.type = 'button';
                 deleteBtn.textContent = '削除';
@@ -1413,6 +1469,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 lineDiv.appendChild(copyButton);
                 lineDiv.appendChild(downloadBtn);
                 lineDiv.appendChild(insertDialogueBtn);
+                lineDiv.appendChild(splitPunctBtn);
                 lineDiv.appendChild(deleteBtn);
                 scriptEditor.appendChild(lineDiv);
             });
@@ -1429,29 +1486,54 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             scriptEditor.appendChild(endRow);
         }
 
+        // 台本の行にフォーカスしたときに、その行インデックスを記録（「ここから再生」で使用）
+        scriptEditor.addEventListener('focusin', (e) => {
+            let node = e.target;
+            while (node && node !== scriptEditor) {
+                if (node.parentElement === scriptEditor && node.hasAttribute('data-index')) {
+                    const idx = parseInt(node.getAttribute('data-index'), 10);
+                    if (!isNaN(idx)) lastFocusedRowIndex = idx;
+                    break;
+                }
+                node = node.parentElement;
+            }
+        });
+
+        // 「ここから再生」で使う開始行：最後にフォーカスした行（ボタンクリックでフォーカスが移るため記録を使う）
+        function getPlaybackStartRowIndex() {
+            return lastFocusedRowIndex;
+        }
+
         // Playback Logic
         playFullAdBtn.addEventListener('click', () => {
             if (isPlaying) {
                 stopFullAd();
             } else {
-                const activeElement = document.activeElement;
-                let startingIndex = 0;
-                if (activeElement && activeElement.parentElement.parentElement === scriptEditor && activeElement.hasAttribute('data-index')) {
-                    startingIndex = parseInt(activeElement.getAttribute('data-index'), 10);
-                }
+                const startingIndex = getPlaybackStartRowIndex();
                 startFullAd(startingIndex);
             }
+        });
+        stopFullAdBtn.addEventListener('click', () => {
+            if (isPlaying) stopFullAd();
         });
 
         function parseScriptFromEditor() {
             const newDialogue = [];
-            const lineDivs = scriptEditor.querySelectorAll('div');
-            lineDivs.forEach(div => {
+            // 編集エリアの「行」だけを取得し、data-index で昇順ソートして確実に先頭〜最後まで取得
+            const rowDivs = Array.from(scriptEditor.children).filter(
+                el => el.nodeType === 1 && el.hasAttribute && el.hasAttribute('data-index')
+            );
+            rowDivs.sort((a, b) => {
+                const ia = parseInt(a.getAttribute('data-index'), 10);
+                const ib = parseInt(b.getAttribute('data-index'), 10);
+                return (ia - ib);
+            });
+            rowDivs.forEach(div => {
                 const charInput = div.querySelector('input[data-type="character"]');
                 const lineInput = div.querySelector('input[data-type="line"]');
                 if (charInput && lineInput) {
                     newDialogue.push({
-                        character: charInput.value,
+                        character: charInput.value.trim(),
                         line: lineInput.value
                     });
                 }
@@ -1462,10 +1544,15 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
         async function startFullAd(startingIndex = 0) {
             generatedDialogue = parseScriptFromEditor();
             if (generatedDialogue.length === 0) return;
+            // 開始行が範囲外の場合は最後の行に合わせる
+            const safeIndex = Math.min(Math.max(0, startingIndex), generatedDialogue.length - 1);
             
             isPlaying = true;
+            playbackAbortController = new AbortController();
             playFullAdBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V9a1 1 0 00-1-1H7z" clip-rule="evenodd" /></svg>停止する`;
-            
+            playFullAdBtn.disabled = true;
+            stopFullAdBtn.disabled = false;
+
             const imageSources = sourceFiles.filter(f => f.fileType === 'image');
             let imageIndex = 0;
             if (imageSlideshowInterval) clearInterval(imageSlideshowInterval);
@@ -1482,13 +1569,22 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 }, 3000);
             }
 
-            currentLineIndex = startingIndex;
+            currentLineIndex = safeIndex;
             speakFullAd();
         }
 
         function stopFullAd() {
             isPlaying = false;
+            if (playbackAbortController) {
+                playbackAbortController.abort();
+                playbackAbortController = null;
+            }
             synth.cancel();
+            if (currentVoicevoxSource) {
+                try { currentVoicevoxSource.stop(0); } catch (e) {}
+                try { currentVoicevoxSource.disconnect(); } catch (e) {}
+                currentVoicevoxSource = null;
+            }
             if (currentVoicevoxAudio) {
                 currentVoicevoxAudio.onended = null;
                 currentVoicevoxAudio.onerror = null;
@@ -1500,6 +1596,8 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 clearInterval(imageSlideshowInterval);
                 imageSlideshowInterval = null;
             }
+            playFullAdBtn.disabled = false;
+            stopFullAdBtn.disabled = true;
             playFullAdBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>ここから再生`;
             const imageSources = sourceFiles.filter(f => f.fileType === 'image');
             if (currentMode === 'file' && imageSources.length > 0) {
@@ -1542,8 +1640,13 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             if (useVoicevox && voicevoxSpeakers.length > 0) {
                 const speakerId = characterVoicevoxIds[item.character] ?? voicevoxSpeakers[0].id;
                 try {
-                    const blobUrl = await voicevoxSynthesize(item.line, speakerId);
+                    const blobUrl = await voicevoxSynthesize(item.line, speakerId, playbackAbortController?.signal);
                     if (!isPlaying) return;
+                    if (currentVoicevoxSource) {
+                        try { currentVoicevoxSource.stop(0); } catch (e) {}
+                        try { currentVoicevoxSource.disconnect(); } catch (e) {}
+                        currentVoicevoxSource = null;
+                    }
                     if (currentVoicevoxAudio) {
                         currentVoicevoxAudio.onended = null;
                         currentVoicevoxAudio.onerror = null;
@@ -1551,25 +1654,28 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                         currentVoicevoxAudio.src = '';
                         currentVoicevoxAudio = null;
                     }
-                    currentVoicevoxAudio = new Audio(blobUrl);
-                    currentVoicevoxAudio.onended = () => {
+                    if (!playbackAudioContext) playbackAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (playbackAudioContext.state === 'suspended') await playbackAudioContext.resume();
+                    const arrayBuffer = await (await fetch(blobUrl)).arrayBuffer();
+                    const buffer = await playbackAudioContext.decodeAudioData(arrayBuffer);
+                    URL.revokeObjectURL(blobUrl);
+                    if (!isPlaying) return;
+                    const src = playbackAudioContext.createBufferSource();
+                    src.buffer = buffer;
+                    src.connect(playbackAudioContext.destination);
+                    currentVoicevoxSource = src;
+                    const HANDOFF_MS = 700; // 話者がしゃべり終わってから次の話者にバトンタッチするまでの余裕（HTML Audioのonendedは早く発火するためWeb AudioのBufferSource.onendedを使用）
+                    src.onended = () => {
                         if (lineAdvanceScheduled) return;
                         lineAdvanceScheduled = true;
-                        URL.revokeObjectURL(blobUrl);
+                        currentVoicevoxSource = null;
                         currentLineIndex++;
-                        setTimeout(speakFullAd, 350);
+                        setTimeout(speakFullAd, HANDOFF_MS);
                     };
-                    currentVoicevoxAudio.onerror = (e) => {
-                        if (lineAdvanceScheduled) return;
-                        lineAdvanceScheduled = true;
-                        console.error('VOICEVOX playback error', e);
-                        URL.revokeObjectURL(blobUrl);
-                        currentLineIndex++;
-                        setTimeout(speakFullAd, 350);
-                    };
-                    currentVoicevoxAudio.play();
+                    src.start(0);
                 } catch (e) {
-                    console.error('VOICEVOX synthesize error', e);
+                    if (e.name === 'AbortError') return; // 停止ボタンでキャンセルされた
+                    console.error('VOICEVOX synthesize/playback error', e);
                     currentLineIndex++;
                     setTimeout(speakFullAd, 500);
                 }
@@ -1588,8 +1694,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 if (lineAdvanceScheduled) return;
                 lineAdvanceScheduled = true;
                 waitUntilSpeechEnd().then(() => {
-                    currentLineIndex++;
-                    speakFullAd();
+                    setTimeout(() => {
+                        currentLineIndex++;
+                        speakFullAd();
+                    }, 400);
                 });
             };
             utterance.onerror = (e) => {
@@ -1597,8 +1705,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 lineAdvanceScheduled = true;
                 console.error('SpeechSynthesisUtterance.onerror', e);
                 waitUntilSpeechEnd().then(() => {
-                    currentLineIndex++;
-                    speakFullAd();
+                    setTimeout(() => {
+                        currentLineIndex++;
+                        speakFullAd();
+                    }, 400);
                 });
             };
             synth.speak(utterance);
@@ -1649,6 +1759,66 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             URL.revokeObjectURL(url);
         });
 
+        /** 切り位置がサロゲートペア（絵文字等）の途中でないようにする（1文字も欠けないため） */
+        function safeSplitIndex(str, wantIdx) {
+            let idx = Math.min(Math.max(0, wantIdx), str.length);
+            if (idx < str.length && str.charCodeAt(idx) >= 0xDC00 && str.charCodeAt(idx) <= 0xDFFF) idx++;
+            return idx;
+        }
+
+        /** 長いテキストを句点・文字数で分割（VOICEVOXの途切れ防止）。セリフの頭から最後まで1文字も落とさない。 */
+        function splitTextForSynth(text, maxLen) {
+            if (!text) return [];
+            const t = text.trim();
+            if (!t || t.length <= maxLen) return [t];
+            const chunks = [];
+            let rest = t;
+            while (rest.length > 0) {
+                if (rest.length <= maxLen) {
+                    chunks.push(rest);
+                    break;
+                }
+                const head = rest.slice(0, maxLen);
+                const match = head.match(/([。！？\n]+)[^。！？\n]*$/);
+                let wantIdx = match ? head.lastIndexOf(match[1]) + match[1].length : maxLen;
+                if (wantIdx <= 0) wantIdx = maxLen;
+                const idx = safeSplitIndex(rest, wantIdx);
+                if (idx <= 0) break;
+                const piece = rest.slice(0, idx);
+                if (piece.length > 0) chunks.push(piece);
+                rest = rest.slice(idx).trimStart();
+            }
+            if (rest.length > 0) chunks.push(rest);
+            return chunks;
+        }
+
+        /** 複数のAudioBufferを1つに連結（同一行内の分割合成用）。先頭から最後まで途切れないよう余裕を持たせてからトリム。 */
+        async function concatAudioBuffers(ctx, buffers, sampleRate, numChannels) {
+            if (buffers.length === 0) throw new Error('buffers is empty');
+            if (buffers.length === 1) return buffers[0];
+            let totalSamples = 0;
+            for (const b of buffers) {
+                totalSamples += Math.ceil(b.duration * sampleRate) + 2;
+            }
+            const offline = new OfflineAudioContext(numChannels, totalSamples, sampleRate);
+            let offsetSec = 0;
+            for (const b of buffers) {
+                const src = offline.createBufferSource();
+                src.buffer = b;
+                src.connect(offline.destination);
+                src.start(offsetSec);
+                offsetSec += b.duration;
+            }
+            const rendered = await offline.startRendering();
+            const exactSamples = Math.floor(offsetSec * sampleRate);
+            if (exactSamples >= rendered.length) return rendered;
+            const trimmed = offline.createBuffer(rendered.numberOfChannels, exactSamples, sampleRate);
+            for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+                trimmed.getChannelData(ch).set(rendered.getChannelData(ch).subarray(0, exactSamples));
+            }
+            return trimmed;
+        }
+
         downloadFullAudioBtn.addEventListener('click', async () => {
             const dialogue = parseScriptFromEditor();
             if (dialogue.length === 0) {
@@ -1661,7 +1831,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 return;
             }
             const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
-            const GAP_SEC = 0.2;
+            const GAP_SEC = 0.45; // 行と行の間をはっきり取る（話者の最初から最後まで聞き取りやすく、バトンタッチを明確に）
             downloadFullAudioBtn.disabled = true;
             downloadFullAudioBtn.textContent = '生成中...';
             try {
@@ -1672,7 +1842,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 for (let i = 0; i < dialogue.length; i++) {
                     const d = dialogue[i];
                     const speakerId = characterVoicevoxIds[d.character] ?? voicevoxSpeakers[0].id;
-                    const text = d.line.trim();
+                    const text = (d.line || '').trim();
                     if (!text) continue;
                     const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
                     if (!queryRes.ok) throw new Error(`行 ${i + 1} の取得に失敗`);
@@ -1688,17 +1858,32 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 if (buffers.length === 0) throw new Error('有効なセリフがありません');
                 sampleRate = buffers[0].sampleRate;
                 numChannels = buffers[0].numberOfChannels;
-                const totalSamples = buffers.reduce((acc, b) => acc + b.length, 0) + Math.round(GAP_SEC * sampleRate) * (buffers.length - 1);
+                // 開始時刻を配列で事前計算（浮動小数点の累積誤差を防ぐ）
+                const startTimesSec = [];
+                let t = 0;
+                for (let i = 0; i < buffers.length; i++) {
+                    startTimesSec.push(t);
+                    t += buffers[i].duration + GAP_SEC;
+                }
+                const totalDurationSec = t - GAP_SEC; // 最後のセリフ後は間を入れない
+                const MARGIN_SEC = 2; // 途切れ防止の余裕
+                const totalSamples = Math.ceil((totalDurationSec + MARGIN_SEC) * sampleRate);
                 const offline = new OfflineAudioContext(numChannels, totalSamples, sampleRate);
-                let offset = 0;
                 for (let i = 0; i < buffers.length; i++) {
                     const src = offline.createBufferSource();
                     src.buffer = buffers[i];
                     src.connect(offline.destination);
-                    src.start(offset);
-                    offset += buffers[i].length / sampleRate + GAP_SEC;
+                    src.start(startTimesSec[i]);
                 }
-                const rendered = await offline.startRendering();
+                let rendered = await offline.startRendering();
+                const exactSamples = Math.floor(totalDurationSec * sampleRate);
+                if (exactSamples < rendered.length) {
+                    const trimmed = offline.createBuffer(rendered.numberOfChannels, exactSamples, sampleRate);
+                    for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+                        trimmed.getChannelData(ch).set(rendered.getChannelData(ch).subarray(0, exactSamples));
+                    }
+                    rendered = trimmed;
+                }
                 const format = document.querySelector('input[name="download-format"]:checked').value;
                 let blob, filename;
                 if (format === 'mp4') {
@@ -1751,7 +1936,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 return;
             }
             const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
-            const GAP_SEC = 0.2;
+            const GAP_SEC = 0.45;
             const bgmGain = parseInt(bgmVolumeSlider.value, 10) / 100;
             downloadWithBgmBtn.disabled = true;
             downloadWithBgmBtn.textContent = '生成中...';
@@ -1763,7 +1948,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 for (let i = 0; i < dialogue.length; i++) {
                     const d = dialogue[i];
                     const speakerId = characterVoicevoxIds[d.character] ?? voicevoxSpeakers[0].id;
-                    const text = d.line.trim();
+                    const text = (d.line || '').trim();
                     if (!text) continue;
                     const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, { method: 'POST' });
                     if (!queryRes.ok) throw new Error(`行 ${i + 1} の取得に失敗`);
@@ -1779,17 +1964,31 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 if (buffers.length === 0) throw new Error('有効なセリフがありません');
                 sampleRate = buffers[0].sampleRate;
                 numChannels = buffers[0].numberOfChannels;
-                const totalSamples = buffers.reduce((acc, b) => acc + b.length, 0) + Math.round(GAP_SEC * sampleRate) * (buffers.length - 1);
+                const startTimesSec = [];
+                let t = 0;
+                for (let i = 0; i < buffers.length; i++) {
+                    startTimesSec.push(t);
+                    t += buffers[i].duration + GAP_SEC;
+                }
+                const totalDurationSec = t - GAP_SEC;
+                const MARGIN_SEC = 2;
+                const totalSamples = Math.ceil((totalDurationSec + MARGIN_SEC) * sampleRate);
                 const offlineVoice = new OfflineAudioContext(numChannels, totalSamples, sampleRate);
-                let offset = 0;
                 for (let i = 0; i < buffers.length; i++) {
                     const src = offlineVoice.createBufferSource();
                     src.buffer = buffers[i];
                     src.connect(offlineVoice.destination);
-                    src.start(offset);
-                    offset += buffers[i].length / sampleRate + GAP_SEC;
+                    src.start(startTimesSec[i]);
                 }
-                const voiceBuffer = await offlineVoice.startRendering();
+                let voiceBuffer = await offlineVoice.startRendering();
+                const voiceExactSamples = Math.floor(totalDurationSec * sampleRate);
+                if (voiceExactSamples < voiceBuffer.length) {
+                    const trimmed = offlineVoice.createBuffer(voiceBuffer.numberOfChannels, voiceExactSamples, sampleRate);
+                    for (let ch = 0; ch < voiceBuffer.numberOfChannels; ch++) {
+                        trimmed.getChannelData(ch).set(voiceBuffer.getChannelData(ch).subarray(0, voiceExactSamples));
+                    }
+                    voiceBuffer = trimmed;
+                }
 
                 const bgmArrayBuffer = await bgmFileInput.files[0].arrayBuffer();
                 const bgmBuffer = await ctx.decodeAudioData(bgmArrayBuffer);
@@ -1905,10 +2104,17 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 const recorder = new MediaRecorder(stream, { mimeType });
                 const chunks = [];
                 recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-                recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+                recorder.onstop = () => {
+                    // 最後の ondataavailable が処理されるまでわずかに遅延してから Blob 化（取りこぼし防止）
+                    setTimeout(() => resolve(new Blob(chunks, { type: mimeType })), 0);
+                };
                 recorder.onerror = (e) => reject(e.error || new Error('MP4の録音に失敗しました'));
                 recorder.start(100);
-                src.onended = () => recorder.stop();
+                src.onended = () => {
+                    // 最後の音声がエンコードされて ondataavailable で届くまで余裕を持たせてから stop
+                    recorder.requestData();
+                    setTimeout(() => recorder.stop(), 250);
+                };
                 src.start(0);
             });
         }
