@@ -87,6 +87,16 @@
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-900">AI動画広告ジェネレーター</h1>
             <p class="text-gray-600 mt-2">画像やURLから、AIが広告用の掛け合い台本を自動作成します。</p>
+            <!-- APIキー設定エリア -->
+            <div class="mt-4 flex items-center justify-center gap-2">
+                <input type="password" id="api-key-input" placeholder="Gemini APIキーを入力"
+                    class="w-72 p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                <button id="save-api-key-btn"
+                    class="bg-blue-600 text-white text-sm font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                    保存
+                </button>
+                <span id="api-key-status" class="text-sm font-semibold text-green-600 hidden">✓ 保存済み</span>
+            </div>
         </header>
 
         <main class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
@@ -876,8 +886,8 @@
 
         // ポスター生成
         generatePosterBtn.addEventListener('click', async () => {
-            if (!GEMINI_API_KEY || !GEMINI_API_KEY.trim()) {
-                alert('Gemini APIキーが設定されていません。コード内の GEMINI_API_KEY を設定してください。');
+            if (!getApiKey()) {
+                alert('Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。');
                 return;
             }
             let sourceSummary = '';
@@ -890,7 +900,7 @@
                     loading.classList.remove('hidden');
                     loading.classList.add('flex');
                     loadingText.textContent = 'URLの内容を読み取っています...';
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getApiKey()}`;
                     const res = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -946,7 +956,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             loadingText.textContent = 'ポスターを生成中です... (数十秒かかることがあります)';
             try {
                 const modelId = 'gemini-2.5-flash-image';
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${getApiKey()}`;
                 const payload = {
                     contents: [{ parts }],
                     generationConfig: {
@@ -1085,17 +1095,42 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             document.body.removeChild(a);
         });
 
-        // Gemini API Call
-        const GEMINI_API_KEY = "AIzaSyDtf6N3IOF874fByFP77tcA1CG6WogEbDc"; // Gemini APIキー
+        // APIキー入力欄の初期化
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+        const apiKeyStatus = document.getElementById('api-key-status');
 
+        function getApiKey() {
+            return localStorage.getItem('gemini_api_key') || '';
+        }
+
+        // 保存済みキーを読み込んで表示
+        if (getApiKey()) {
+            apiKeyInput.value = getApiKey();
+            apiKeyStatus.classList.remove('hidden');
+        }
+
+        saveApiKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+            localStorage.setItem('gemini_api_key', key);
+            apiKeyStatus.classList.remove('hidden');
+            alert('APIキーを保存しました。次回からは自動で読み込まれます。');
+        });
+
+        // Gemini API Call
         async function callGemini(parts) {
-            if (!GEMINI_API_KEY || !GEMINI_API_KEY.trim()) {
-                throw new Error("Gemini APIキーが設定されていません。コード内の GEMINI_API_KEY を設定してください。");
+            const key = getApiKey();
+            if (!key) {
+                throw new Error("Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。");
             }
             const payload = {
                 contents: [{ parts: parts }],
             };
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const result = await response.json();
             if (!response.ok) {
@@ -1165,10 +1200,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 contents: [{ parts: parts }],
                 generation_config: { "response_mime_type": "application/json" }
             };
-            if (!GEMINI_API_KEY || !GEMINI_API_KEY.trim()) {
-                throw new Error("Gemini APIキーが設定されていません。コード内の GEMINI_API_KEY を設定してください。");
+            if (!getApiKey()) {
+                throw new Error("Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。");
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getApiKey()}`;
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             const result = await response.json();
             if (!response.ok) {
