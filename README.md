@@ -43,10 +43,17 @@
 4. 「広告素材を生成」をクリック
 5. 生成された台本を編集・音声再生・CSVエクスポート・翻訳できます
 
+## バージョン管理
+
+- アプリ画面上部に **v1.0.0 (日付)** 形式でバージョンが表示されます
+- **コードを変更したら必ずバージョンを上げること**
+  - `index.html` 内の `APP_VERSION` と `APP_BUILD_DATE` を更新
+  - 例: 1.0.0 → 1.0.1（軽微な修正）、1.0.0 → 1.1.0（機能追加）、1.0.0 → 2.0.0（大きな変更）
+
 ## APIキーについて
 
 Gemini API を使用します。  
-`index.html` 内の `GEMINI_API_KEY` に、[Google AI Studio](https://aistudio.google.com/apikey) で取得したAPIキーを設定してください。
+画面上部の入力欄に [Google AI Studio](https://aistudio.google.com/apikey) で取得したAPIキーを入力して「保存」してください。ブラウザに保存され、次回から自動で読み込まれます。
 
 ## ライセンス
 
