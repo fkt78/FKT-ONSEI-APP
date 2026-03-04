@@ -2,7 +2,7 @@
   "hosting": {
     "target": "onsei-app",
     "public": ".",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/README*.md", "**/README*.txt", "**/push-to-github.sh", "**/GitHubに保存する方法.txt", "**/起動サーバー9000.command", "**/.git/**"],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/README*.md", "**/README*.txt", "**/push-to-github.sh", "**/GitHubに保存する方法.txt", "**/起動サーバー9000.command", "**/.git/**", "**/scripts/**", "**/deploy.sh", "**/.cursor/**", "**/Firebaseデプロイ手順.md"],
     "headers": [
       {
         "source": "sw.js",

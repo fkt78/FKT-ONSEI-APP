@@ -46,16 +46,26 @@ firebase login
 
 ## 2. デプロイの実行
 
-このフォルダ（`ai-ad-generator`）で以下を実行します。
+このフォルダで以下を実行します。
 
-**※ 音声アプリ用に設定しているプロジェクトは `hattyuu-kanri-app-test` です。**  
-別のプロジェクト（例: new-check-137f9）が選択されていると「Deploy target onsei-app not configured」と出ます。その場合は先にプロジェクトを切り替えてください。
+**※ 推奨: `deploy.sh` を使うと、バージョンが自動でパッチアップされてからデプロイされます。**
 
 ```bash
-cd ~/ai-ad-generator
+cd "このフォルダのパス"
+./deploy.sh
+```
+
+または手動でバージョンアップしてからデプロイする場合：
+
+```bash
+cd "このフォルダのパス"
+node scripts/update-version.cjs   # バージョンをパッチアップ
 firebase use hattyuu-kanri-app-test
 firebase deploy
 ```
+
+**※ 音声アプリ用に設定しているプロジェクトは `hattyuu-kanri-app-test` です。**  
+別のプロジェクトが選択されていると「Deploy target onsei-app not configured」と出ます。その場合は先にプロジェクトを切り替えてください。
 
 初回は「Hosting の設定を確認しますか？」と出る場合があります。その場合は **Y** で進めてください。
 
@@ -69,11 +79,11 @@ Hosting URL: https://onsei-app-999b5.hattyuu-kanri-app-test.web.app
 
 ## 3. 今後の更新時
 
-`index.html` などを編集したあと、再度デプロイするには同じコマンドを実行します。
+`index.html` などを編集したあと、再度デプロイするには `./deploy.sh` を実行します（バージョンが自動で上がります）。
 
 ```bash
-cd ~/ai-ad-generator
-firebase deploy
+cd "このフォルダのパス"
+./deploy.sh
 ```
 
 ---

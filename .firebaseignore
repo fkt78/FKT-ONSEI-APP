@@ -12,3 +12,5 @@ GitHubに保存する方法.txt
 起動サーバー9000.command
 **/.DS_Store
 **/*.log
+scripts
+deploy.sh

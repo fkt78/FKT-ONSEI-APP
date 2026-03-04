@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
-  【重要】コードを変更したら必ず APP_VERSION を上げること。
-  例: 1.0.0 → 1.0.1（軽微な修正）, 1.0.0 → 1.1.0（機能追加）, 1.0.0 → 2.0.0（大きな変更）
+  バージョン管理: コード変更時は必ず APP_VERSION を上げる（.cursor/rules/version-auto.mdc 参照）。
+  デプロイ時は ./deploy.sh を使用すると自動でパッチアップされる。
 -->
 <html lang="ja">
 <head>
@@ -484,6 +484,8 @@
                         <li>この状態で、このアプリ（<strong>http://localhost:9000</strong> など）を<strong>同じ Mac</strong> のブラウザで開き、「音声エンジン」で <strong>VOICEVOX</strong> を選ぶと、ずんだもん等の声で再生できます。</li>
                     </ol>
                     <p class="text-blue-800 text-sm">※ VOICEVOX を起動すると、内部で Engine がポート 50021 で待ち受けます。別の PC でこのアプリを開いていると接続できないため、「同じPC（同じMac）で」VOICEVOX を起動する必要があります。</p>
+                    <p class="text-blue-800 text-sm mt-2 font-semibold">【デプロイ版（HTTPS）で VOICEVOX を使う場合】</p>
+                    <p class="text-blue-800 text-sm mt-1">Firebase などオンラインで開いた場合、VOICEVOX Engine の CORS 設定が必要です。VOICEVOX を起動した状態で <a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">http://127.0.0.1:50021/setting</a> を開き、「Allow Origin」にこのアプリの URL（例：https://onsei-app-999b5.hattyuu-kanri-app-test.web.app）を追加して保存し、VOICEVOX を再起動してください。</p>
                 </div>
 
                 <!-- Export Instructions -->
@@ -522,7 +524,7 @@
                             <h4 class="font-bold text-slate-800 mb-1">音声</h4>
                             <ul class="list-disc list-inside space-y-1">
                                 <li>ブラウザの音声：台本のキャラごとにブラウザの日本語音声を選択可能。</li>
-                                <li>VOICEVOX：同じPCでVOICEVOX Engine（localhost:50021）を起動し、http://localhost:9000 でアプリを開いた場合に利用可能。オンライン（HTTPS）で開いた場合はVOICEVOXは使えない。</li>
+                                <li>VOICEVOX：同じPCでVOICEVOX Engine（localhost:50021）を起動。ローカル（localhost）ではそのまま利用可能。オンライン（HTTPS）で開く場合は、<a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">Engine の設定画面</a>で「Allow Origin」にアプリのURLを追加する必要あり。</li>
                                 <li>音声をまとめてダウンロード：VOICEVOX選択時、全行を1本のファイルでダウンロード（保存形式でWAVまたはMP4を選択可能）。</li>
                                 <li>BGMを付けてダウンロード：VOICEVOX音声にBGMファイルを混ぜてダウンロード（WAV/MP4選択可）。BGMはループし、音声の終わりでフェードアウト。</li>
                             </ul>
@@ -572,8 +574,8 @@
 
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
-        const APP_VERSION = '1.0.1';
-        const APP_BUILD_DATE = '2026-02-28';
+        const APP_VERSION = '1.0.3';
+        const APP_BUILD_DATE = '2026-03-04';
 
         // バージョン表示を更新
         document.getElementById('app-version-display').textContent = `v${APP_VERSION} (${APP_BUILD_DATE})`;
@@ -690,11 +692,18 @@
                 if (isVoicevox) {
                     statusEl.textContent = 'VOICEVOX に接続しています...';
                     fetchVoicevoxSpeakers().then(ok => {
-                        statusEl.textContent = ok ? `VOICEVOX 対応（${voicevoxSpeakers.length} 種類の声）` : 'VOICEVOX に接続できません。Engine を起動してください。';
+                        const isHttps = location.protocol === 'https:';
+                        const errMsg = isHttps
+                            ? 'VOICEVOX に接続できません。Engine を起動し、<a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">設定画面</a>で「Allow Origin」にこのページのURLを追加してください。'
+                            : 'VOICEVOX に接続できません。Engine を起動してください。';
+                        statusEl.innerHTML = ok ? `VOICEVOX 対応（${voicevoxSpeakers.length} 種類の声）` : errMsg;
                         statusEl.style.color = ok ? '#059669' : '#dc2626';
                         if (ok && voiceSelectors.innerHTML) setupVoiceSelectors();
                     }).catch(() => {
-                        statusEl.textContent = 'VOICEVOX に接続できません。Engine を起動してください。';
+                        const isHttps = location.protocol === 'https:';
+                        statusEl.innerHTML = isHttps
+                            ? 'VOICEVOX に接続できません。Engine を起動し、<a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">設定画面</a>で「Allow Origin」にこのページのURLを追加してください。'
+                            : 'VOICEVOX に接続できません。Engine を起動してください。';
                         statusEl.style.color = '#dc2626';
                     });
                 } else {
@@ -707,7 +716,11 @@
             if (document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox') {
                 fetchVoicevoxSpeakers().then(ok => {
                     const statusEl = document.getElementById('voicevox-status');
-                    statusEl.textContent = ok ? `VOICEVOX 対応（${voicevoxSpeakers.length} 種類の声）` : '接続できません';
+                    const isHttps = location.protocol === 'https:';
+                    const errMsg = isHttps
+                        ? '接続できません。<a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">設定画面</a>で「Allow Origin」にこのページのURLを追加してください。'
+                        : '接続できません';
+                    statusEl.innerHTML = ok ? `VOICEVOX 対応（${voicevoxSpeakers.length} 種類の声）` : errMsg;
                     statusEl.style.color = ok ? '#059669' : '#dc2626';
                     if (ok && voiceSelectors.innerHTML) setupVoiceSelectors();
                 });
