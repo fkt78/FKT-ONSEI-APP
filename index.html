@@ -574,7 +574,7 @@
 
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
-        const APP_VERSION = '1.0.4';
+        const APP_VERSION = '1.0.5';
         const APP_BUILD_DATE = '2026-03-04';
 
         // バージョン表示を更新
@@ -639,6 +639,9 @@
         let characterColors = {}; // For color-coding speakers
         let imageSlideshowInterval = null; // スライドショー用タイマーID（未宣言バグ修正）
         const colors = ['#3b82f6', '#10b981', '#ef4444', '#f97316', '#8b5cf6']; // blue, green, red, orange, purple
+
+        // セリフ音量（1.0=そのまま、1.5=約50%アップ）
+        const SPEECH_VOLUME_GAIN = 1.5;
 
         // VOICEVOX 用
         let voicevoxSpeakers = []; // { id, displayName } の配列（スタイル単位）
@@ -1722,7 +1725,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                     if (!isPlaying) return;
                     const src = playbackAudioContext.createBufferSource();
                     src.buffer = buffer;
-                    src.connect(playbackAudioContext.destination);
+                    const gainNode = playbackAudioContext.createGain();
+                    gainNode.gain.value = SPEECH_VOLUME_GAIN;
+                    src.connect(gainNode);
+                    gainNode.connect(playbackAudioContext.destination);
                     currentVoicevoxSource = src;
                     const HANDOFF_MS = 700; // 話者がしゃべり終わってから次の話者にバトンタッチするまでの余裕（HTML Audioのonendedは早く発火するためWeb AudioのBufferSource.onendedを使用）
                     src.onended = () => {
@@ -1929,10 +1935,13 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 const MARGIN_SEC = 2; // 途切れ防止の余裕
                 const totalSamples = Math.ceil((totalDurationSec + MARGIN_SEC) * sampleRate);
                 const offline = new OfflineAudioContext(numChannels, totalSamples, sampleRate);
+                const voiceGain = offline.createGain();
+                voiceGain.gain.value = SPEECH_VOLUME_GAIN;
+                voiceGain.connect(offline.destination);
                 for (let i = 0; i < buffers.length; i++) {
                     const src = offline.createBufferSource();
                     src.buffer = buffers[i];
-                    src.connect(offline.destination);
+                    src.connect(voiceGain);
                     src.start(startTimesSec[i]);
                 }
                 let rendered = await offline.startRendering();
@@ -2060,7 +2069,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
 
                 const voiceSrc = offlineMix.createBufferSource();
                 voiceSrc.buffer = voiceBuffer;
-                voiceSrc.connect(offlineMix.destination);
+                const voiceGainNode = offlineMix.createGain();
+                voiceGainNode.gain.value = SPEECH_VOLUME_GAIN;
+                voiceSrc.connect(voiceGainNode);
+                voiceGainNode.connect(offlineMix.destination);
                 voiceSrc.start(0);
 
                 const voiceDurationSec = voiceBuffer.length / outSampleRate;
