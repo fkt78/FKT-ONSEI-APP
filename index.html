@@ -399,7 +399,35 @@
             <!-- Result Section -->
             <div id="result-section" class="hidden mt-10">
                 <h2 class="text-2xl font-bold mb-6 text-center">🎉 広告素材が完成しました！ 🎉</h2>
-                
+
+                <div class="mb-6 p-4 border-2 border-indigo-200 rounded-xl bg-indigo-50/60 shadow-sm">
+                    <h3 class="text-lg font-bold text-indigo-950 mb-1">掲示・お知らせ用テキスト（タイトル・本文）</h3>
+                    <p class="text-sm text-indigo-900/85 mb-4">店舗のお知らせ画面の「<strong>タイトル</strong>」「<strong>本文</strong>」欄に、そのままコピーして貼り付けできます。必要に応じて編集してからコピーしてください。</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="ad-notice-title" class="block text-sm font-semibold text-gray-800 mb-1">広告のタイトル（表題）</label>
+                            <div class="flex flex-col sm:flex-row gap-2 sm:items-start">
+                                <textarea id="ad-notice-title" rows="2" class="w-full flex-1 p-2.5 border border-indigo-200 rounded-lg bg-white text-gray-900 text-sm shadow-inner" placeholder="「タイトル（例：新商品入荷のお知らせ）」欄に貼る用"></textarea>
+                                <button type="button" id="ad-copy-title-btn" class="shrink-0 w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition">コピー</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="ad-notice-body" class="block text-sm font-semibold text-gray-800 mb-1">広告の内容（本文）</label>
+                            <div class="flex flex-col sm:flex-row gap-2 sm:items-start">
+                                <textarea id="ad-notice-body" rows="7" class="w-full flex-1 p-2.5 border border-indigo-200 rounded-lg bg-white text-gray-900 text-sm shadow-inner" placeholder="「本文」欄に貼る用（複数行可）"></textarea>
+                                <button type="button" id="ad-copy-body-btn" class="shrink-0 w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 self-start transition">コピー</button>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">音声・お知らせの公開期限（任意・コピー用）</p>
+                            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                <input type="text" id="ad-notice-expiry" class="w-full flex-1 p-2.5 border border-indigo-200 rounded-lg bg-white text-gray-900 text-sm" placeholder="例：2026年4月30日まで（空欄可）" autocomplete="off">
+                                <button type="button" id="ad-copy-expiry-btn" class="shrink-0 w-full sm:w-auto px-4 py-2 bg-slate-500 text-white text-sm font-semibold rounded-lg hover:bg-slate-600 transition">コピー</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-gray-50 p-6 rounded-lg">
                     <div id="result-image-container" class="hidden">
                         <img id="result-image" alt="広告画像">
@@ -526,7 +554,7 @@
                     <div id="spec-content" class="hidden mt-4 text-sm text-slate-700 space-y-4">
                         <section>
                             <h4 class="font-bold text-slate-800 mb-1">概要</h4>
-                            <p>画像・URL・ファイルからAI（Gemini）で台本を生成し、ブラウザ音声またはVOICEVOXで再生。CSV入出力・翻訳・行単位/全体の音声ダウンロード・BGM付きダウンロードに対応。</p>
+                            <p>画像・URL・ファイルからAI（Gemini）で台本を生成し、ブラウザ音声またはVOICEVOXで再生。掲示用の<strong>タイトル・本文</strong>（コピー用）も同時に表示。CSV入出力・翻訳・行単位/全体の音声ダウンロード・BGM付きダウンロードに対応。</p>
                         </section>
                         <section>
                             <h4 class="font-bold text-slate-800 mb-1">台本編集</h4>
@@ -593,9 +621,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.1.2';
-        const APP_BUILD_DATETIME = '2026-04-23 18:23:31 (JST)';
-        const APP_BUILD_ISO = '2026-04-23T18:23:31+09:00';
+        const APP_VERSION = '1.2.1';
+        const APP_BUILD_DATETIME = '2026-04-23 20:31:40 (JST)';
+        const APP_BUILD_ISO = '2026-04-23T20:31:40+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -629,6 +657,12 @@
         const loading = document.getElementById('loading');
         const loadingText = document.getElementById('loading-text');
         const resultSection = document.getElementById('result-section');
+        const adNoticeTitle = document.getElementById('ad-notice-title');
+        const adNoticeBody = document.getElementById('ad-notice-body');
+        const adNoticeExpiry = document.getElementById('ad-notice-expiry');
+        const adCopyTitleBtn = document.getElementById('ad-copy-title-btn');
+        const adCopyBodyBtn = document.getElementById('ad-copy-body-btn');
+        const adCopyExpiryBtn = document.getElementById('ad-copy-expiry-btn');
         const resultImageContainer = document.getElementById('result-image-container');
         const resultImage = document.getElementById('result-image');
         const imageCounter = document.getElementById('image-counter');
@@ -662,6 +696,25 @@
         const posterClearOverlayBtn = document.getElementById('poster-clear-overlay-btn');
         const generatePosterBtn = document.getElementById('generate-poster-btn');
         const downloadPosterBtn = document.getElementById('download-poster-btn');
+
+        function copyFieldToClipboard(getText, btn) {
+            const text = getText();
+            if (text == null || String(text).length === 0) {
+                alert('コピーする内容がありません。');
+                return;
+            }
+            const label = String(text);
+            navigator.clipboard.writeText(label).then(() => {
+                const prev = btn.textContent;
+                btn.textContent = 'コピーしました';
+                setTimeout(() => { btn.textContent = prev; }, 1800);
+            }).catch(() => {
+                alert('コピーに失敗しました。テキストを手で選択してコピーしてください。');
+            });
+        }
+        if (adCopyTitleBtn) adCopyTitleBtn.addEventListener('click', () => copyFieldToClipboard(() => (adNoticeTitle && adNoticeTitle.value) || '', adCopyTitleBtn));
+        if (adCopyBodyBtn) adCopyBodyBtn.addEventListener('click', () => copyFieldToClipboard(() => (adNoticeBody && adNoticeBody.value) || '', adCopyBodyBtn));
+        if (adCopyExpiryBtn) adCopyExpiryBtn.addEventListener('click', () => copyFieldToClipboard(() => (adNoticeExpiry && adNoticeExpiry.value) || '', adCopyExpiryBtn));
 
         // App State
         let currentMode = 'file';
@@ -1239,9 +1292,13 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
 - 登場人物は${String(numSpeakers)}人にしてください。
 - 指定された【雰囲気・形式】と【訴求ポイント】を厳密に守ってください。
 - 特に「新商品アピール」や「価格強調」などの指示がある場合は、セリフの中で明確に言及してください。
-- 出力は必ず以下のJSON形式に従ってください。
+- 会話台本に加え、店頭掲示や社内の「お知らせ」登録用に、**その広告の表題**と**掲示本文**を同時に出力してください。表題・本文は台本のセリフのコピーではなく、短く読みやすい案内文にしてください（貼り付け先の「タイトル／本文」欄を想定）。
+- ad_title：1行の表題（目安15〜40文字。例：新商品入荷のお知らせ、期間限定セール など具体性を持たせる）。
+- ad_body：掲示の本文（目安120〜450文字。訴求・日付・来店促し等を含めてよい。改行を含める場合はJSON文字列内でバックスラッシュ+n（\\n）として表す）。
+- ad_expiry_note：任意。案内上の「公開期限」欄用の1行（例：2026年4月30日まで）。なければ空文字 ""。
+- 出力は必ず次の1つのJSONオブジェクトのみ。キー名は下記のとおり英字のまま必須。
 
-{"dialogue": [{"character": "登場人物1の名前", "line": "セリフ1"}, {"character": "登場人物2の名前", "line": "セリフ2"}]}
+{"ad_title":"掲示用の表題1行","ad_body":"掲示用の本文。改行例は1行目\\n2行目。","ad_expiry_note":"","dialogue":[{"character":"登場人物1の名前","line":"セリフ1"},{"character":"登場人物2の名前","line":"セリフ2"}]}
             `;
 
             if (currentMode === 'url') {
@@ -1285,6 +1342,27 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
         }
 
         // UI Display Logic
+        function buildFallbackAdCopy(dlg) {
+            if (!dlg || !Array.isArray(dlg) || dlg.length === 0) {
+                return { ad_title: '店舗からのお知らせ', ad_body: '' };
+            }
+            const first = dlg.find((d) => d && d.line && String(d.line).trim());
+            const t = (first && first.line) ? String(first.line).trim() : '店舗からのお知らせ';
+            const title = t.length > 45 ? t.slice(0, 42) + '…' : t;
+            const lines = dlg.map((d) => (d && d.line ? String(d.line).trim() : '')).filter(Boolean);
+            const body = lines.join('\n');
+            return { ad_title: title, ad_body: body.length > 1200 ? body.slice(0, 1197) + '…' : body };
+        }
+
+        function ensureAdCopy(data) {
+            const dlg = data && Array.isArray(data.dialogue) ? data.dialogue : [];
+            const fb = buildFallbackAdCopy(dlg);
+            const title = data && data.ad_title != null && String(data.ad_title).trim() ? String(data.ad_title).trim() : fb.ad_title;
+            const body = data && data.ad_body != null && String(data.ad_body).trim() ? String(data.ad_body).replace(/\\n/g, '\n') : fb.ad_body;
+            const expiry = data && data.ad_expiry_note != null ? String(data.ad_expiry_note).trim() : '';
+            return { ad_title: title, ad_body: body, ad_expiry_note: expiry };
+        }
+
         function displayResults(data) {
             if (!data || !Array.isArray(data.dialogue) || data.dialogue.length === 0) {
                 console.error('displayResults: 無効な dialogue データ', data);
@@ -1292,6 +1370,11 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 return;
             }
             generatedDialogue = data.dialogue;
+
+            const ad = ensureAdCopy(data);
+            if (adNoticeTitle) adNoticeTitle.value = ad.ad_title;
+            if (adNoticeBody) adNoticeBody.value = ad.ad_body;
+            if (adNoticeExpiry) adNoticeExpiry.value = ad.ad_expiry_note || '';
             
             const imageSources = sourceFiles.filter(f => f.fileType === 'image');
             if (currentMode === 'file' && imageSources.length > 0) {
