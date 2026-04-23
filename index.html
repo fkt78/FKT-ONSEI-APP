@@ -621,9 +621,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.2.3';
-        const APP_BUILD_DATETIME = '2026-04-23 20:35:27 (JST)';
-        const APP_BUILD_ISO = '2026-04-23T20:35:27+09:00';
+        const APP_VERSION = '1.2.5';
+        const APP_BUILD_DATETIME = '2026-04-23 20:56:20 (JST)';
+        const APP_BUILD_ISO = '2026-04-23T20:56:20+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -2402,19 +2402,34 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             icon.textContent = content.classList.contains('hidden') ? '▼' : '▲';
         });
 
-        // PWA: 常に最新版で開く（Service Worker 登録・更新時リロード）
+        // PWA: 常に最新版で開く（Service Worker 更新時は確認してから skip / リロード）
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+            const confirmSwReload = () =>
+                window.confirm(
+                    'アプリが更新されました。今すぐ再読み込みしますか？\n（「キャンセル」を選ぶと、編集中の内容を保ったまま次回に更新されます。）'
+                );
+            const askSkipWaiting = (worker) => {
+                if (!worker) return;
+                if (confirmSwReload()) {
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                }
+            };
+            navigator.serviceWorker
+                .register('sw.js', { updateViaCache: 'none' })
                 .then((reg) => {
                     reg.onupdatefound = () => {
                         const newWorker = reg.installing;
+                        if (!newWorker) return;
                         newWorker.onstatechange = () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                const w = reg.waiting || newWorker;
+                                askSkipWaiting(w);
                             }
                         };
                     };
-                    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    if (reg.waiting) {
+                        askSkipWaiting(reg.waiting);
+                    }
                 })
                 .catch((err) => console.warn('Service Worker 登録失敗:', err));
             navigator.serviceWorker.addEventListener('controllerchange', () => {
