@@ -621,9 +621,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.2.1';
-        const APP_BUILD_DATETIME = '2026-04-23 20:31:40 (JST)';
-        const APP_BUILD_ISO = '2026-04-23T20:31:40+09:00';
+        const APP_VERSION = '1.2.3';
+        const APP_BUILD_DATETIME = '2026-04-23 20:35:27 (JST)';
+        const APP_BUILD_ISO = '2026-04-23T20:35:27+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -910,7 +910,19 @@
                     img.className = 'w-full h-full object-cover rounded-md';
                     preview.appendChild(img);
                 } else {
-                    preview.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mb-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg><span>${file.name}</span>`;
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('class', 'h-10 w-10 text-gray-400 mb-1');
+                    svg.setAttribute('viewBox', '0 0 20 20');
+                    svg.setAttribute('fill', 'currentColor');
+                    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    pathEl.setAttribute('fill-rule', 'evenodd');
+                    pathEl.setAttribute('d', 'M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z');
+                    pathEl.setAttribute('clip-rule', 'evenodd');
+                    svg.appendChild(pathEl);
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = file.name;
+                    preview.appendChild(svg);
+                    preview.appendChild(nameSpan);
                 }
                 filePreviewContainer.appendChild(preview);
             });
