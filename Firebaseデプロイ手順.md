@@ -59,7 +59,7 @@ cd "このフォルダのパス"
 
 ```bash
 cd "このフォルダのパス"
-node scripts/update-version.cjs   # バージョンをパッチアップ
+node scripts/update-version.cjs   # パッチ（Z）を上げ、デプロイ日時（JST）を index.html に記録
 firebase use hattyuu-kanri-app-test
 firebase deploy
 ```

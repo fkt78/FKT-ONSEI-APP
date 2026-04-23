@@ -45,10 +45,10 @@
 
 ## バージョン管理
 
-- アプリ画面上部に **vX.Y.Z (日付)** 形式でバージョンが表示されます（最新版の稼働確認用）
+- アプリ画面上部に **SemVer（vX.Y.Z）**、各桁の意味（メジャー・マイナー・パッチ）、**デプロイ日時（JST）** が表示されます（最新版の稼働確認用）
 - **コードを変更したら必ずバージョンを上げること**（エラー修正・機能追加など少しでも変更した場合）
-  - Cursor で編集する場合: `.cursor/rules/version-auto.mdc` に従い、編集時に `APP_VERSION` と `APP_BUILD_DATE` を更新
-  - デプロイ時: `./deploy.sh` を実行すると**自動でパッチアップ**されてからデプロイされる
+  - Cursor で編集する場合: `.cursor/rules/version-auto.mdc` に従い、SemVer（`APP_VERSION`）とデプロイ用の `APP_BUILD_DATETIME` / `APP_BUILD_ISO` を更新
+  - デプロイ時: `./deploy.sh` を実行すると、**デプロイ時点の JST でパッチ（Z）が上がり、日時が記録されてから**デプロイされる
 
 ## APIキーについて
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   バージョン管理: コード変更時は必ず APP_VERSION を上げる（.cursor/rules/version-auto.mdc 参照）。
-  デプロイ時は ./deploy.sh を使用すると自動でパッチアップされる。
+  APP_BUILD_DATETIME / APP_BUILD_ISO はデプロイ時（./deploy.sh または node scripts/update-version.cjs）で更新。
 -->
 <html lang="ja">
 <head>
@@ -91,7 +91,25 @@
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-900">AI動画広告ジェネレーター</h1>
             <p class="text-gray-600 mt-2">画像やURLから、AIが広告用の掛け合い台本を自動作成します。</p>
-            <p id="app-version-display" class="mt-1 text-sm font-mono text-gray-500">v1.0.0</p>
+            <div id="app-version-block" class="mt-3 text-center text-sm text-gray-600 max-w-xl mx-auto space-y-1.5" aria-label="アプリのバージョンとデプロイ日時">
+                <p class="font-mono text-base font-semibold text-gray-800">
+                    <span id="app-version-line">v0.0.0</span>
+                    <span class="ml-1.5 text-xs font-sans font-normal text-gray-500">（セマンティック・バージョン）</span>
+                </p>
+                <p class="text-xs text-gray-500">
+                    <span class="whitespace-nowrap">メジャー <span id="v-major-num" class="font-mono text-gray-700">0</span></span>
+                    <span class="mx-1" aria-hidden="true">·</span>
+                    <span class="whitespace-nowrap">マイナー <span id="v-minor-num" class="font-mono text-gray-700">0</span></span>
+                    <span class="mx-1" aria-hidden="true">·</span>
+                    <span class="whitespace-nowrap">パッチ <span id="v-patch-num" class="font-mono text-gray-700">0</span></span>
+                </p>
+                <p class="text-[11px] text-gray-400 leading-snug px-1">
+                    大きな仕様・互換性の変化 ／ 後方互換の機能追加 ／ 修正・小さな改善
+                </p>
+                <p class="text-xs font-mono text-gray-600 mt-1.5">
+                    デプロイ: <time id="app-build-time" datetime=""></time>
+                </p>
+            </div>
             <!-- APIキー設定エリア -->
             <div class="mt-4 flex items-center justify-center gap-2">
                 <input type="password" id="api-key-input" placeholder="Gemini APIキーを入力"
@@ -574,11 +592,28 @@
 
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
-        const APP_VERSION = '1.0.6';
-        const APP_BUILD_DATE = '2026-03-04';
+        // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
+        const APP_VERSION = '1.1.2';
+        const APP_BUILD_DATETIME = '2026-04-23 18:23:31 (JST)';
+        const APP_BUILD_ISO = '2026-04-23T18:23:31+09:00';
 
-        // バージョン表示を更新
-        document.getElementById('app-version-display').textContent = `v${APP_VERSION} (${APP_BUILD_DATE})`;
+        (function renderAppVersion() {
+            const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
+            if (!m) return;
+            const elLine = document.getElementById('app-version-line');
+            const tMajor = document.getElementById('v-major-num');
+            const tMinor = document.getElementById('v-minor-num');
+            const tPatch = document.getElementById('v-patch-num');
+            const timeEl = document.getElementById('app-build-time');
+            if (elLine) elLine.textContent = `v${APP_VERSION}`;
+            if (tMajor) tMajor.textContent = m[1];
+            if (tMinor) tMinor.textContent = m[2];
+            if (tPatch) tPatch.textContent = m[3];
+            if (timeEl) {
+                timeEl.dateTime = APP_BUILD_ISO;
+                timeEl.textContent = APP_BUILD_DATETIME;
+            }
+        })();
 
         // DOM Elements
         const fileUpload = document.getElementById('file-upload');

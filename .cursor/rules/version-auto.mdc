@@ -8,23 +8,35 @@ alwaysApply: false
 
 このプロジェクトでは、**index.html や sw.js などアプリのコードに少しでも変更を加えた場合**（バグ修正・機能追加・スタイル変更・エラー修正など）は、**必ずバージョンを上げること**。
 
+## セマンティック・バージョン（SemVer）
+
+`X.Y.Z` = **メジャー . マイナー . パッチ**。
+
+| 桁 | 意味 | 上げるタイミングの目安 |
+|----|------|------------------------|
+| X（メジャー） | 大きな仕様・互換性の変化 | 破壊的変更、大規模な作り直し |
+| Y（マイナー） | 後方互換の範囲の機能追加 | 新機能・画面追加など |
+| Z（パッチ） | 修正・小さな改善 | バグ修正、文言、軽微な調整 |
+
 ## 必須対応
 
-コードを編集したら、**同じ編集内で** `index.html` の以下を更新すること：
+コードを編集したら、**同じ編集内で** `index.html` の `APP_VERSION` を更新すること。
 
 ```javascript
-const APP_VERSION = 'X.Y.Z';   // パッチを1つ上げる（例: 1.0.2 → 1.0.3）
-const APP_BUILD_DATE = 'YYYY-MM-DD';  // 今日の日付
+const APP_VERSION = 'X.Y.Z';
+const APP_BUILD_DATETIME = 'YYYY-MM-DD HH:MM:SS (JST)';  // 手元では当日・現在時刻に合わせてよい
+const APP_BUILD_ISO = 'YYYY-MM-DDTHH:MM:SS+09:00';      // 上の日時に対応（`<time datetime>` 用）
 ```
 
-- **軽微な修正・バグ修正**: 1.0.2 → 1.0.3（パッチアップ）
-- **機能追加**: 1.0.3 → 1.1.0（マイナーアップ）
-- **大きな変更**: 1.1.0 → 2.0.0（メジャーアップ）
+- **手動**でメジャー／マイナー／いずれの桁を上げるかを選ぶ。迷ったら**パッチを 1 つ上げる**。
+- `APP_BUILD_DATETIME` / `APP_BUILD_ISO` は、**`./deploy.sh` 前に `node scripts/update-version.cjs` を実行**すると、デプロイ時点の **JST の日付＋時刻** に揃えられる。手動デプロイ時もその前に同スクリプトを実行すること。
 
 ## デプロイ時
 
-`./deploy.sh` を実行すると、**自動でバージョンがパッチアップ**されてから Firebase にデプロイされる。手動で `firebase deploy` する場合も、その前に `node scripts/update-version.cjs` でバージョンアップすること。
+`./deploy.sh` を実行すると、**先に** `node scripts/update-version.cjs` が走り、**パッチ（Z）が 1 つ上がり**、**デプロイ日時（JST）** が `APP_BUILD_DATETIME` / `APP_BUILD_ISO` に記録されてから Firebase にデプロイされる。
+
+`firebase deploy` のみ行う場合も、その前に `node scripts/update-version.cjs` を実行すること。
 
 ## 目的
 
-画面上部に表示されるバージョンで、**最新版が稼働しているか**を確認できるようにする。
+画面上部のバージョン表記で、**どの改修レベルか**と**いつデプロイしたか**を確認できるようにする。
