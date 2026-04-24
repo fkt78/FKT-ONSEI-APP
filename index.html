@@ -621,9 +621,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.2.7';
-        const APP_BUILD_DATETIME = '2026-04-24 22:40:50 (JST)';
-        const APP_BUILD_ISO = '2026-04-24T22:40:50+09:00';
+        const APP_VERSION = '1.3.1';
+        const APP_BUILD_DATETIME = '2026-04-24 22:59:53 (JST)';
+        const APP_BUILD_ISO = '2026-04-24T22:59:53+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -987,10 +987,11 @@
             loadingText.textContent = isUrlMode ? 'URLの内容を読み取っています...' : 'AIが台本を生成中です...';
             resultSection.classList.add('hidden');
             generateBtn.disabled = true;
+            let hitRateLimit = false;
             try {
                 const scriptText = await generateScript();
                 const jsonMatch = scriptText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) throw new Error("AI response did not contain valid JSON.");
+                if (!jsonMatch) throw new Error("AIの応答に正しい形式のデータが含まれていませんでした。もう一度お試しください。");
                 const scriptData = JSON.parse(jsonMatch[0]);
                 // 台本の最後に「近くて便利 セブンイレブン」を必ず入れる
                 const closingPhrase = '近くて便利 セブンイレブン';
@@ -1004,13 +1005,39 @@
             } catch (error) {
                 console.error('Error:', error);
                 const msg = error && error.message ? error.message : 'エラーが発生しました。AIが不完全な応答を返した可能性があります。もう一度お試しください。';
+                hitRateLimit = /API.*混雑|Resource exhausted|quota|rate/i.test(msg);
                 alert(msg);
             } finally {
                 loading.classList.add('hidden');
                 loading.classList.remove('flex');
-                generateBtn.disabled = false;
+                if (hitRateLimit) {
+                    startGenerateCooldown(60);
+                } else {
+                    generateBtn.disabled = false;
+                }
             }
         });
+
+        // 連打防止：429 のあとは一定秒数ボタンを無効化
+        let cooldownTimer = null;
+        const generateBtnOriginalLabel = generateBtn.textContent;
+        function startGenerateCooldown(seconds) {
+            if (cooldownTimer) clearInterval(cooldownTimer);
+            let remain = Math.max(5, Math.floor(seconds));
+            generateBtn.disabled = true;
+            generateBtn.textContent = `しばらくお待ちください（${remain}秒）`;
+            cooldownTimer = setInterval(() => {
+                remain -= 1;
+                if (remain <= 0) {
+                    clearInterval(cooldownTimer);
+                    cooldownTimer = null;
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = generateBtnOriginalLabel;
+                } else {
+                    generateBtn.textContent = `しばらくお待ちください（${remain}秒）`;
+                }
+            }, 1000);
+        }
 
         // ポスター生成
         generatePosterBtn.addEventListener('click', async () => {
@@ -1028,16 +1055,14 @@
                     loading.classList.remove('hidden');
                     loading.classList.add('flex');
                     loadingText.textContent = 'URLの内容を読み取っています...';
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getApiKey()}`;
-                    const res = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: `次のURLのウェブページの内容を要約し、広告ポスターのテーマとして使える短い説明（日本語・2〜3文）で返してください。\nURL: ${urlInput.value.trim()}` }] }]
-                        })
+                    const data = await fetchGeminiWithRetry(GEMINI_DEFAULT_MODEL, {
+                        contents: [{ parts: [{ text: `次のURLのウェブページの内容を要約し、広告ポスターのテーマとして使える短い説明（日本語・2〜3文）で返してください。\nURL: ${urlInput.value.trim()}` }] }]
+                    }, {
+                        onWait: (sec, attempt, max, reason) => {
+                            loadingText.textContent = `${reason}のため ${sec} 秒待って再試行します（${attempt}/${max - 1}）...`;
+                        }
                     });
-                    const data = await res.json();
-                    if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    if (data && data.candidates && data.candidates[0].content.parts[0].text) {
                         sourceSummary = data.candidates[0].content.parts[0].text.trim();
                     } else {
                         sourceSummary = 'このURLの内容を元にした広告';
@@ -1084,7 +1109,6 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             loadingText.textContent = 'ポスターを生成中です... (数十秒かかることがあります)';
             try {
                 const modelId = 'gemini-2.5-flash-image';
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${getApiKey()}`;
                 const payload = {
                     contents: [{ parts }],
                     generationConfig: {
@@ -1095,12 +1119,11 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                         }
                     }
                 };
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const result = await response.json();
-                if (!response.ok) {
-                    const errMsg = result.error && result.error.message ? result.error.message : response.statusText;
-                    throw new Error(`APIエラー: ${errMsg}`);
-                }
+                const result = await fetchGeminiWithRetry(modelId, payload, {
+                    onWait: (sec, attempt, max, reason) => {
+                        loadingText.textContent = `${reason}のため ${sec} 秒待って再試行します（${attempt}/${max - 1}）...`;
+                    }
+                });
                 let imageData = null;
                 if (result.candidates && result.candidates[0].content.parts) {
                     for (const part of result.candidates[0].content.parts) {
@@ -1249,31 +1272,114 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             alert('APIキーを保存しました。次回からは自動で読み込まれます。');
         });
 
-        // Gemini API Call
-        async function callGemini(parts) {
+        // ===== Gemini API 共通（再試行・分かりやすい日本語エラー） =====
+        const GEMINI_DEFAULT_MODEL = 'gemini-2.0-flash';
+        const GEMINI_API_VERSION = 'v1beta';
+
+        function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+        function extractRetryDelaySec(errorObj) {
+            try {
+                const details = errorObj && errorObj.details;
+                if (!Array.isArray(details)) return null;
+                for (const d of details) {
+                    if (d && typeof d.retryDelay === 'string') {
+                        const m = d.retryDelay.match(/(\d+(?:\.\d+)?)s/);
+                        if (m) return Math.min(120, Math.max(1, Math.ceil(parseFloat(m[1]))));
+                    }
+                }
+            } catch (_) { /* ignore */ }
+            return null;
+        }
+
+        function friendlyGeminiErrorMessage(status, errMsg, retrySec) {
+            const msg = String(errMsg || '');
+            if (status === 429 || /Resource exhausted|quota|rate/i.test(msg)) {
+                const s = retrySec && Number.isFinite(retrySec) ? `${retrySec}秒` : '約1〜2分';
+                return `APIが混雑しています（1分あたりの利用回数の制限）。${s}ほど待ってから、もう一度「広告素材を生成」を押してください。\n\n（連続で押すと制限が長引くことがあります。他のタブで同じAPIキーを使っていないかもご確認ください。）`;
+            }
+            if (status === 401 || status === 403) {
+                if (/leaked/i.test(msg)) {
+                    return 'このAPIキーは「漏えいの可能性あり」として無効化されています。Google AI Studio で新しいAPIキーを発行し、画面上部に貼り直して「保存」してください。';
+                }
+                return 'APIキーが無効、または権限がありません。Google AI Studio でAPIキーを発行し直して、画面上部に貼り直してください。';
+            }
+            if (status === 400) {
+                return `入力内容に問題があったため生成できませんでした。\n元のメッセージ: ${msg}`;
+            }
+            if (status >= 500) {
+                return `AI側で一時的な不具合が発生しました（${status}）。しばらくしてから、もう一度お試しください。`;
+            }
+            return `APIエラー: ${msg || status}`;
+        }
+
+        async function fetchGeminiJsonOnce(modelId, body) {
             const key = getApiKey();
-            if (!key) {
-                throw new Error("Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。");
+            if (!key) throw new Error('Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。');
+            const url = `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${modelId}:generateContent?key=${key}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            let json = null;
+            try { json = await res.json(); } catch (_) { /* may be empty */ }
+            return { res, json };
+        }
+
+        async function fetchGeminiWithRetry(modelId, body, opts = {}) {
+            const maxAttempts = opts.maxAttempts || 3;
+            const onWait = typeof opts.onWait === 'function' ? opts.onWait : null;
+            let lastErr = null;
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                let res, json;
+                try {
+                    ({ res, json } = await fetchGeminiJsonOnce(modelId, body));
+                } catch (networkErr) {
+                    lastErr = networkErr;
+                    if (attempt < maxAttempts) {
+                        const waitSec = Math.min(30, 5 * attempt);
+                        if (onWait) onWait(waitSec, attempt, maxAttempts, 'ネットワーク');
+                        await sleep(waitSec * 1000);
+                        continue;
+                    }
+                    throw new Error(`通信エラー: ${networkErr.message || networkErr}`);
+                }
+                if (res.ok) return json;
+                const status = res.status;
+                const err = json && json.error ? json.error : null;
+                const errMsg = err && err.message ? err.message : res.statusText;
+                const retriable = status === 429 || status >= 500;
+                if (!retriable || attempt >= maxAttempts) {
+                    const retrySec = extractRetryDelaySec(err);
+                    throw new Error(friendlyGeminiErrorMessage(status, errMsg, retrySec));
+                }
+                const retrySec = extractRetryDelaySec(err) || Math.min(60, 15 * attempt);
+                if (onWait) onWait(retrySec, attempt, maxAttempts, status === 429 ? 'API混雑' : 'サーバ');
+                await sleep(retrySec * 1000);
             }
-            const payload = {
-                contents: [{ parts: parts }],
-            };
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await response.json();
-            if (!response.ok) {
-                const errMsg = result.error && result.error.message ? result.error.message : response.statusText;
-                throw new Error(`APIエラー: ${errMsg}`);
-            }
-            if (result.candidates && result.candidates.length > 0) {
+            throw lastErr || new Error('APIの呼び出しに失敗しました。');
+        }
+
+        // 従来の callGemini は共通関数を使うように薄くラップ
+        async function callGemini(parts, modelId) {
+            const model = modelId || GEMINI_DEFAULT_MODEL;
+            const result = await fetchGeminiWithRetry(model, { contents: [{ parts }] }, {
+                onWait: (sec, attempt, max, reason) => {
+                    if (typeof loadingText !== 'undefined' && loadingText) {
+                        loadingText.textContent = `${reason}のため ${sec} 秒待って再試行します（${attempt}/${max - 1}）...`;
+                    }
+                }
+            });
+            if (result && result.candidates && result.candidates.length > 0) {
                 const part = result.candidates[0].content.parts[0];
-                if (!part || !part.text) throw new Error("API応答にテキストが含まれていません。");
+                if (!part || !part.text) throw new Error('API応答にテキストが含まれていません。');
                 return part.text;
             }
-            if (result.promptFeedback && result.promptFeedback.blockReason) {
+            if (result && result.promptFeedback && result.promptFeedback.blockReason) {
                 throw new Error(`コンテンツがブロックされました: ${result.promptFeedback.blockReason}`);
             }
-            throw new Error("API response was empty.");
+            throw new Error('AIから有効な応答が返りませんでした。もう一度お試しください。');
         }
 
         async function generateScript() {
@@ -1332,17 +1438,12 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 contents: [{ parts: parts }],
                 generation_config: { "response_mime_type": "application/json" }
             };
-            if (!getApiKey()) {
-                throw new Error("Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。");
-            }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${getApiKey()}`;
-            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            const result = await response.json();
-            if (!response.ok) {
-                const errMsg = result.error && result.error.message ? result.error.message : response.statusText;
-                throw new Error(`APIエラー: ${errMsg}`);
-            }
-            if (result.candidates && result.candidates.length > 0) {
+            const result = await fetchGeminiWithRetry(GEMINI_DEFAULT_MODEL, payload, {
+                onWait: (sec, attempt, max, reason) => {
+                    loadingText.textContent = `${reason}のため ${sec} 秒待って再試行します（${attempt}/${max - 1}）...`;
+                }
+            });
+            if (result && result.candidates && result.candidates.length > 0) {
                 const part = result.candidates[0].content.parts[0];
                 if (!part || !part.text) throw new Error("API応答にテキストが含まれていません。");
                 return part.text;
