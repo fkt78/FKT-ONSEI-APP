@@ -483,8 +483,8 @@
                                 </button>
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm font-medium text-gray-700">保存形式:</span>
-                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="wav" checked> WAV</label>
-                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp4"> MP4</label>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="wav"> WAV</label>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp4" checked> M4A（iPhone 推奨）</label>
                                 </div>
                                 <button id="download-full-audio-btn" class="flex-1 min-w-[140px] bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center text-lg">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>
@@ -621,9 +621,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.4.1';
-        const APP_BUILD_DATETIME = '2026-04-25 00:34:09 (JST)';
-        const APP_BUILD_ISO = '2026-04-25T00:34:09+09:00';
+        const APP_VERSION = '1.4.2';
+        const APP_BUILD_DATETIME = '2026-05-02 23:49:38 (JST)';
+        const APP_BUILD_ISO = '2026-05-02T23:49:38+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -1777,7 +1777,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                             const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
                             const mp4Blob = await audioBufferToMp4Blob(buf);
                             url = URL.createObjectURL(mp4Blob);
-                            downloadName = baseName + '.mp4';
+                            downloadName = baseName + '.m4a';
                         } else {
                             url = URL.createObjectURL(blob);
                             downloadName = baseName + '.wav';
@@ -2249,7 +2249,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 let blob, filename;
                 if (format === 'mp4') {
                     blob = await audioBufferToMp4Blob(rendered);
-                    filename = 'script_full_audio.mp4';
+                    filename = 'script_full_audio.m4a';
                 } else {
                     const wav = audioBufferToWav(rendered);
                     blob = new Blob([wav], { type: 'audio/wav' });
@@ -2386,7 +2386,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 let blob, filename;
                 if (format === 'mp4') {
                     blob = await audioBufferToMp4Blob(mixed);
-                    filename = 'script_full_audio_with_bgm.mp4';
+                    filename = 'script_full_audio_with_bgm.m4a';
                 } else {
                     const wav = audioBufferToWav(mixed);
                     blob = new Blob([wav], { type: 'audio/wav' });
