@@ -624,9 +624,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.4.3';
-        const APP_BUILD_DATETIME = '2026-05-10 22:52:53 (JST)';
-        const APP_BUILD_ISO = '2026-05-10T22:52:53+09:00';
+        const APP_VERSION = '1.4.4';
+        const APP_BUILD_DATETIME = '2026-05-10 23:19:29 (JST)';
+        const APP_BUILD_ISO = '2026-05-10T23:19:29+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -2456,18 +2456,33 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
         }
 
         /** AudioBuffer を lamejs で MP3 Blob に変換（128kbps） */
-        function audioBufferToMp3Blob(audioBuffer, kbps = 128) {
+        // Safari/iPhone は 24000Hz の MP3（MPEG-2）を再生できないため、
+        // エンコード前に OfflineAudioContext で 44100Hz（MPEG-1 標準）にリサンプルする。
+        async function audioBufferToMp3Blob(audioBuffer, kbps = 128) {
+            if (typeof lamejs === 'undefined' || !lamejs.Mp3Encoder) {
+                throw new Error('MP3エンコーダーが読み込まれていません。ページを再読み込みしてください。');
+            }
+            // 44100Hz にリサンプル（Safari 互換の MPEG-1 Layer 3 を生成するため）
+            const TARGET_SR = 44100;
+            let buf = audioBuffer;
+            if (audioBuffer.sampleRate !== TARGET_SR) {
+                const numCh = audioBuffer.numberOfChannels;
+                const targetLength = Math.round(audioBuffer.length * TARGET_SR / audioBuffer.sampleRate);
+                const offline = new OfflineAudioContext(numCh, targetLength, TARGET_SR);
+                const src = offline.createBufferSource();
+                src.buffer = audioBuffer;
+                src.connect(offline.destination);
+                src.start(0);
+                buf = await offline.startRendering();
+            }
             return new Promise((resolve, reject) => {
                 try {
-                    if (typeof lamejs === 'undefined' || !lamejs.Mp3Encoder) {
-                        throw new Error('MP3エンコーダーが読み込まれていません。ページを再読み込みしてください。');
-                    }
-                    const numCh = audioBuffer.numberOfChannels;
-                    const sr = audioBuffer.sampleRate;
+                    const numCh = buf.numberOfChannels;
+                    const sr = buf.sampleRate;
                     const encoder = new lamejs.Mp3Encoder(numCh, sr, kbps);
                     const blockSize = 1152;
-                    const leftData = audioBuffer.getChannelData(0);
-                    const rightData = numCh > 1 ? audioBuffer.getChannelData(1) : leftData;
+                    const leftData = buf.getChannelData(0);
+                    const rightData = numCh > 1 ? buf.getChannelData(1) : leftData;
                     // Float32 → Int16 変換ヘルパー
                     const toInt16 = (floatBuf) => {
                         const int16 = new Int16Array(floatBuf.length);
