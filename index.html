@@ -20,6 +20,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.18/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <!-- MP3 エンコーダー (lamejs) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
     <style>
         body {
             font-family: 'Noto Sans JP', 'Inter', sans-serif;
@@ -483,8 +485,9 @@
                                 </button>
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm font-medium text-gray-700">保存形式:</span>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp3" checked> MP3（推奨）</label>
                                     <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="wav"> WAV</label>
-                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp4" checked> M4A（iPhone 推奨）</label>
+                                    <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp4"> M4A</label>
                                 </div>
                                 <button id="download-full-audio-btn" class="flex-1 min-w-[140px] bg-emerald-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center text-lg">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" clip-rule="evenodd" /></svg>
@@ -621,9 +624,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.4.2';
-        const APP_BUILD_DATETIME = '2026-05-02 23:49:38 (JST)';
-        const APP_BUILD_ISO = '2026-05-02T23:49:38+09:00';
+        const APP_VERSION = '1.4.3';
+        const APP_BUILD_DATETIME = '2026-05-10 22:52:53 (JST)';
+        const APP_BUILD_ISO = '2026-05-10T22:52:53+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -1769,10 +1772,16 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                         if (!synthRes.ok) throw new Error('音声の生成に失敗しました');
                         const blob = await synthRes.blob();
                         const format = document.querySelector('input[name="download-format"]:checked');
-                        const useMp4 = format && format.value === 'mp4';
+                        const fmt = format ? format.value : 'mp3';
                         const baseName = `voice_${String(index + 1).padStart(3, '0')}_${char.replace(/[/\\?*:|"]/g, '_')}`;
                         let url, downloadName;
-                        if (useMp4) {
+                        if (fmt === 'mp3') {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+                            const mp3Blob = await audioBufferToMp3Blob(buf);
+                            url = URL.createObjectURL(mp3Blob);
+                            downloadName = baseName + '.mp3';
+                        } else if (fmt === 'mp4') {
                             const ctx = new (window.AudioContext || window.webkitAudioContext)();
                             const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
                             const mp4Blob = await audioBufferToMp4Blob(buf);
@@ -2247,7 +2256,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 }
                 const format = document.querySelector('input[name="download-format"]:checked').value;
                 let blob, filename;
-                if (format === 'mp4') {
+                if (format === 'mp3') {
+                    blob = await audioBufferToMp3Blob(rendered);
+                    filename = 'script_full_audio.mp3';
+                } else if (format === 'mp4') {
                     blob = await audioBufferToMp4Blob(rendered);
                     filename = 'script_full_audio.m4a';
                 } else {
@@ -2384,7 +2396,10 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 const mixed = await offlineMix.startRendering();
                 const format = document.querySelector('input[name="download-format"]:checked').value;
                 let blob, filename;
-                if (format === 'mp4') {
+                if (format === 'mp3') {
+                    blob = await audioBufferToMp3Blob(mixed);
+                    filename = 'script_full_audio_with_bgm.mp3';
+                } else if (format === 'mp4') {
                     blob = await audioBufferToMp4Blob(mixed);
                     filename = 'script_full_audio_with_bgm.m4a';
                 } else {
@@ -2438,6 +2453,48 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 }
             }
             return arrayBuffer;
+        }
+
+        /** AudioBuffer を lamejs で MP3 Blob に変換（128kbps） */
+        function audioBufferToMp3Blob(audioBuffer, kbps = 128) {
+            return new Promise((resolve, reject) => {
+                try {
+                    if (typeof lamejs === 'undefined' || !lamejs.Mp3Encoder) {
+                        throw new Error('MP3エンコーダーが読み込まれていません。ページを再読み込みしてください。');
+                    }
+                    const numCh = audioBuffer.numberOfChannels;
+                    const sr = audioBuffer.sampleRate;
+                    const encoder = new lamejs.Mp3Encoder(numCh, sr, kbps);
+                    const blockSize = 1152;
+                    const leftData = audioBuffer.getChannelData(0);
+                    const rightData = numCh > 1 ? audioBuffer.getChannelData(1) : leftData;
+                    // Float32 → Int16 変換ヘルパー
+                    const toInt16 = (floatBuf) => {
+                        const int16 = new Int16Array(floatBuf.length);
+                        for (let i = 0; i < floatBuf.length; i++) {
+                            const v = Math.max(-1, Math.min(1, floatBuf[i]));
+                            int16[i] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+                        }
+                        return int16;
+                    };
+                    const leftInt16 = toInt16(leftData);
+                    const rightInt16 = toInt16(rightData);
+                    const chunks = [];
+                    for (let i = 0; i < leftInt16.length; i += blockSize) {
+                        const left = leftInt16.subarray(i, i + blockSize);
+                        const right = rightInt16.subarray(i, i + blockSize);
+                        const mp3buf = numCh > 1
+                            ? encoder.encodeBuffer(left, right)
+                            : encoder.encodeBuffer(left);
+                        if (mp3buf.length > 0) chunks.push(new Uint8Array(mp3buf));
+                    }
+                    const end = encoder.flush();
+                    if (end.length > 0) chunks.push(new Uint8Array(end));
+                    resolve(new Blob(chunks, { type: 'audio/mpeg' }));
+                } catch (e) {
+                    reject(e);
+                }
+            });
         }
 
         /** AudioBuffer を MediaRecorder で MP4（または M4A）Blob に変換 */
