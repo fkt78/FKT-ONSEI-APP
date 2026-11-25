@@ -1,6 +1,6 @@
 #!/bin/bash
 # FKT-ONSEI-APP を GitHub にプッシュするスクリプト
-# Macの「ターミナル」で実行: cd ~/ai-ad-generator && ./push-to-github.sh
+# Macの「ターミナル」で実行: cd "このフォルダのパス" && ./push-to-github.sh
 
 cd "$(dirname "$0")"
 echo "現在のフォルダ: $(pwd)"

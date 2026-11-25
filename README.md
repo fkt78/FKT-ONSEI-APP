@@ -17,9 +17,13 @@
 ## 含まれるファイル
 
 - **index.html** … アプリ本体（単一HTMLで動作）
+- **sw.js / manifest.json / icon-192.png / icon-512.png** … PWA 用（Service Worker・マニフェスト・アイコン）
+- **deploy.sh / scripts/update-version.cjs** … バージョン更新＋Firebase デプロイ
+- **firebase.json / .firebaserc** … Firebase Hosting の設定
+- **Firebaseデプロイ手順.md** … デプロイ手順
 - **起動サーバー9000.command** … ポート9000でローカルサーバーを起動（Mac用・ダブルクリックで実行）
-- **README.txt** … 起動方法の説明
-- **.gitignore** … Git用
+- **push-to-github.sh / GitHubに保存する方法.txt** … GitHub への保存用
+- **提案_*.md** … 将来の機能案のメモ（未実装）
 
 ## 起動方法（ポート9000）
 

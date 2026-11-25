@@ -5,7 +5,7 @@
 1. Mac の「ターミナル」アプリを開く（Spotlight で「ターミナル」と検索）
 2. 次のコマンドを実行（1行目でこのフォルダに移動し、2行目で実行）:
 
-   cd ~/ai-ad-generator
+   cd "このフォルダのパス"
    ./push-to-github.sh
 
 3. 初回は GitHub のログイン（またはトークン）を求められることがあります。
@@ -16,7 +16,7 @@
 
 ターミナルで以下を1行ずつ実行してください。エラーが出た行をメモしておくと原因を特定しやすくなります。
 
-cd ~/ai-ad-generator
+cd "このフォルダのパス"
 git init
 git remote add origin https://github.com/fkt78/FKT-ONSEI-APP.git
 git add .

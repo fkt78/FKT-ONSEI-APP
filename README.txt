@@ -8,7 +8,7 @@
 【方法2】ターミナルから手動で起動
   1. アプリ「ターミナル」を開く（Spotlightで「ターミナル」と検索）
   2. 次のコマンドを実行：
-     cd ~/ai-ad-generator
+     cd "このフォルダのパス"
      python3 -m http.server 9000
   3. ブラウザで http://localhost:9000/ を開く
   4. 終了するときは、ターミナルで Control+C を押す
