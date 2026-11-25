@@ -483,6 +483,16 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>
                                     停止
                                 </button>
+                                <label class="flex items-center gap-2 mb-2" title="「ここから再生」の試聴スピードです。ダウンロードする音声には影響しません。">
+                                    <span class="text-sm font-medium text-gray-700">再生速度:</span>
+                                    <select id="playback-speed" class="border border-gray-300 rounded-lg py-2 px-2 text-sm bg-white">
+                                        <option value="1">1倍（標準）</option>
+                                        <option value="1.25">1.25倍</option>
+                                        <option value="1.5">1.5倍</option>
+                                        <option value="1.75">1.75倍</option>
+                                        <option value="2">2倍</option>
+                                    </select>
+                                </label>
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="text-sm font-medium text-gray-700">保存形式:</span>
                                     <label class="inline-flex items-center gap-1 cursor-pointer"><input type="radio" name="download-format" value="mp3" checked> MP3（推奨）</label>
@@ -624,9 +634,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.4.10';
-        const APP_BUILD_DATETIME = '2026-11-25 17:51:00 (JST)';
-        const APP_BUILD_ISO = '2026-11-25T17:51:00+09:00';
+        const APP_VERSION = '1.4.12';
+        const APP_BUILD_DATETIME = '2026-11-25 20:21:00 (JST)';
+        const APP_BUILD_ISO = '2026-11-25T20:21:00+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -842,13 +852,15 @@
             }
         }
 
-        async function voicevoxSynthesize(text, speakerId, signal) {
+        async function voicevoxSynthesize(text, speakerId, signal, speedScale = 1) {
             const base = document.getElementById('voicevox-engine-url').value.trim().replace(/\/$/, '');
             const opts = { method: 'POST' };
             if (signal) opts.signal = signal;
             const queryRes = await fetch(`${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`, opts);
             if (!queryRes.ok) throw new Error('VOICEVOX audio_query failed');
             const query = await queryRes.json();
+            // 試聴用の速度変更（VOICEVOX側で速くするので声の高さは変わらない）
+            if (speedScale !== 1) query.speedScale = (query.speedScale || 1) * speedScale;
             const synthRes = await fetch(`${base}/synthesis?speaker=${speakerId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1934,6 +1946,21 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             return lastFocusedRowIndex;
         }
 
+        // 「ここから再生」の試聴スピード（ダウンロード音声には影響しない）。選択は次回も引き継ぐ
+        const playbackSpeedSelect = document.getElementById('playback-speed');
+        const PLAYBACK_SPEEDS = [1, 1.25, 1.5, 1.75, 2];
+        try {
+            const saved = parseFloat(localStorage.getItem('playback_speed'));
+            if (PLAYBACK_SPEEDS.includes(saved)) playbackSpeedSelect.value = String(saved);
+        } catch (e) {}
+        playbackSpeedSelect.addEventListener('change', () => {
+            try { localStorage.setItem('playback_speed', playbackSpeedSelect.value); } catch (e) {}
+        });
+        function getPlaybackSpeed() {
+            const v = parseFloat(playbackSpeedSelect.value);
+            return PLAYBACK_SPEEDS.includes(v) ? v : 1;
+        }
+
         // Playback Logic
         playFullAdBtn.addEventListener('click', () => {
             if (isPlaying) {
@@ -2059,11 +2086,12 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 return;
             }
             const useVoicevox = document.querySelector('input[name="voice-engine"]:checked').value === 'voicevox';
+            const playbackSpeed = getPlaybackSpeed();
 
             if (useVoicevox && voicevoxSpeakers.length > 0) {
                 const speakerId = characterVoicevoxIds[item.character] ?? voicevoxSpeakers[0].id;
                 try {
-                    const blobUrl = await voicevoxSynthesize(item.line, speakerId, playbackAbortController?.signal);
+                    const blobUrl = await voicevoxSynthesize(item.line, speakerId, playbackAbortController?.signal, playbackSpeed);
                     if (!isPlaying) return;
                     if (currentVoicevoxSource) {
                         try { currentVoicevoxSource.stop(0); } catch (e) {}
@@ -2089,7 +2117,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                         lineAdvanceScheduled = true;
                         currentVoicevoxSource = null;
                         currentLineIndex++;
-                        setTimeout(speakFullAd, HANDOFF_MS);
+                        setTimeout(speakFullAd, HANDOFF_MS / playbackSpeed);
                     };
                     src.start(0);
                 } catch (e) {
@@ -2103,6 +2131,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
 
             synth.cancel();
             const utterance = new SpeechSynthesisUtterance(item.line);
+            utterance.rate = playbackSpeed;
             if (characterVoices[item.character]) {
                 utterance.voice = characterVoices[item.character];
             } else {
