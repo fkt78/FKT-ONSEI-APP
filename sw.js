@@ -4,9 +4,10 @@
  */
 const CACHE_NAME = 'ai-ad-generator-v1';
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
+// install では skipWaiting しない：更新版は「待機」状態にとどめ、
+// 画面側の確認ダイアログで OK されたとき（SKIP_WAITING メッセージ）だけ切り替える。
+// キャンセルした場合は、編集中の内容を保ったまま次回起動時に更新される。
+self.addEventListener('install', () => {});
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {

@@ -624,9 +624,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.4.4';
-        const APP_BUILD_DATETIME = '2026-05-10 23:19:29 (JST)';
-        const APP_BUILD_ISO = '2026-05-10T23:19:29+09:00';
+        const APP_VERSION = '1.4.6';
+        const APP_BUILD_DATETIME = '2026-11-25 17:36:38 (JST)';
+        const APP_BUILD_ISO = '2026-11-25T17:36:38+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);
@@ -1067,7 +1067,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 const msg = error && error.message ? error.message : 'エラーが発生しました。AIが不完全な応答を返した可能性があります。もう一度お試しください。';
-                hitRateLimit = /API.*混雑|Resource exhausted|quota|rate/i.test(msg);
+                hitRateLimit = /APIが混雑しています/.test(msg);
                 alert(msg);
             } finally {
                 loading.classList.add('hidden');
@@ -1119,14 +1119,22 @@
                     loading.classList.add('flex');
                     loadingText.textContent = 'URLの内容を読み取っています...';
                     const data = await fetchGeminiWithRetry(GEMINI_DEFAULT_MODEL, {
-                        contents: [{ parts: [{ text: `次のURLのウェブページの内容を要約し、広告ポスターのテーマとして使える短い説明（日本語・2〜3文）で返してください。\nURL: ${urlInput.value.trim()}` }] }]
+                        contents: [{ parts: [{ text: `次のURLのウェブページの内容を要約し、広告ポスターのテーマとして使える短い説明（日本語・2〜3文）で返してください。\nURL: ${urlInput.value.trim()}` }] }],
+                        tools: [{ url_context: {} }]
                     }, {
                         onWait: (sec, attempt, max, reason) => {
                             loadingText.textContent = `${reason}のため ${sec} 秒待って再試行します（${attempt}/${max - 1}）...`;
                         }
                     });
-                    if (data && data.candidates && data.candidates[0].content.parts[0].text) {
-                        sourceSummary = data.candidates[0].content.parts[0].text.trim();
+                    if (!urlContextSucceeded(data)) {
+                        loading.classList.add('hidden');
+                        loading.classList.remove('flex');
+                        alert(URL_UNREADABLE_MESSAGE);
+                        return;
+                    }
+                    const summaryText = geminiResponseText(data).trim();
+                    if (summaryText) {
+                        sourceSummary = summaryText;
                     } else {
                         sourceSummary = 'このURLの内容を元にした広告';
                     }
@@ -1358,7 +1366,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
 
         function friendlyGeminiErrorMessage(status, errMsg, retrySec) {
             const msg = String(errMsg || '');
-            if (status === 429 || /Resource exhausted|quota|rate/i.test(msg)) {
+            if (status === 429 || /Resource exhausted|quota exceeded|rate limit/i.test(msg)) {
                 const s = retrySec && Number.isFinite(retrySec) ? `${retrySec}秒` : '約1〜2分';
                 return `APIが混雑しています（1分あたりの利用回数の制限）。${s}ほど待ってから、もう一度「広告素材を生成」を押してください。\n\n（連続で押すと制限が長引くことがあります。他のタブで同じAPIキーを使っていないかもご確認ください。）`;
             }
@@ -1392,6 +1400,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
         }
 
         async function fetchGeminiWithRetry(modelId, body, opts = {}) {
+            if (!getApiKey()) throw new Error('Gemini APIキーが設定されていません。画面上部の入力欄にAPIキーを入力して「保存」してください。');
             const maxAttempts = opts.maxAttempts || 3;
             const onWait = typeof opts.onWait === 'function' ? opts.onWait : null;
             let lastErr = null;
@@ -1424,6 +1433,23 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             }
             throw lastErr || new Error('APIの呼び出しに失敗しました。');
         }
+
+        // 応答の全パートのテキストを連結して返す（ツール使用時は複数パートになることがある）
+        function geminiResponseText(result) {
+            const parts = result && result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts;
+            if (!Array.isArray(parts)) return '';
+            return parts.map((p) => (p && typeof p.text === 'string' ? p.text : '')).join('');
+        }
+
+        // URLコンテキストツールの取得結果を確認。取得結果が返っていて、1件も成功していなければ false。
+        function urlContextSucceeded(result) {
+            const cand = result && result.candidates && result.candidates[0];
+            const meta = cand && (cand.urlContextMetadata || cand.url_context_metadata);
+            const list = meta && (meta.urlMetadata || meta.url_metadata);
+            if (!Array.isArray(list) || list.length === 0) return true; // 判定材料なし
+            return list.some((m) => /SUCCESS/.test(String((m && (m.urlRetrievalStatus || m.url_retrieval_status)) || '')));
+        }
+        const URL_UNREADABLE_MESSAGE = 'URLのページ内容を読み取れませんでした。URLが正しいか（ログイン不要で開けるページか）確認するか、ページの内容をファイルや画像で指定してください。';
 
         // 従来の callGemini は共通関数を使うように薄くラップ
         async function callGemini(parts, modelId) {
@@ -1498,19 +1524,22 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 });
             }
             
-            const payload = {
-                contents: [{ parts: parts }],
-                generation_config: { "response_mime_type": "application/json" }
-            };
+            // URLモードは url_context ツールで実際にページを取得する。
+            // （ツール使用時は JSON 固定出力を併用できないため、URLモードでは指定しない。JSON は呼び出し側で抽出する）
+            const isUrl = currentMode === 'url';
+            const payload = isUrl
+                ? { contents: [{ parts: parts }], tools: [{ url_context: {} }] }
+                : { contents: [{ parts: parts }], generation_config: { "response_mime_type": "application/json" } };
             const result = await fetchGeminiWithRetry(GEMINI_DEFAULT_MODEL, payload, {
                 onWait: (sec, attempt, max, reason) => {
                     loadingText.textContent = `${reason}のため ${sec} 秒待って再試行します（${attempt}/${max - 1}）...`;
                 }
             });
             if (result && result.candidates && result.candidates.length > 0) {
-                const part = result.candidates[0].content.parts[0];
-                if (!part || !part.text) throw new Error("API応答にテキストが含まれていません。");
-                return part.text;
+                if (isUrl && !urlContextSucceeded(result)) throw new Error(URL_UNREADABLE_MESSAGE);
+                const text = geminiResponseText(result);
+                if (!text) throw new Error("API応答にテキストが含まれていません。");
+                return text;
             }
             if (result.promptFeedback && result.promptFeedback.blockReason) {
                 throw new Error(`コンテンツがブロックされました: ${result.promptFeedback.blockReason}`);
@@ -1540,7 +1569,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             return { ad_title: title, ad_body: body, ad_expiry_note: expiry };
         }
 
-        function displayResults(data) {
+        function displayResults(data, options = {}) {
             if (!data || !Array.isArray(data.dialogue) || data.dialogue.length === 0) {
                 console.error('displayResults: 無効な dialogue データ', data);
                 alert('台本データが正しく取得できませんでした。');
@@ -1548,10 +1577,13 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
             }
             generatedDialogue = data.dialogue;
 
-            const ad = ensureAdCopy(data);
-            if (adNoticeTitle) adNoticeTitle.value = ad.ad_title;
-            if (adNoticeBody) adNoticeBody.value = ad.ad_body;
-            if (adNoticeExpiry) adNoticeExpiry.value = ad.ad_expiry_note || '';
+            // 翻訳など台本だけを差し替える場合は、掲示用のタイトル・本文・期限を上書きしない
+            if (!options.keepAdCopy) {
+                const ad = ensureAdCopy(data);
+                if (adNoticeTitle) adNoticeTitle.value = ad.ad_title;
+                if (adNoticeBody) adNoticeBody.value = ad.ad_body;
+                if (adNoticeExpiry) adNoticeExpiry.value = ad.ad_expiry_note || '';
+            }
             
             const imageSources = sourceFiles.filter(f => f.fileType === 'image');
             if (currentMode === 'file' && imageSources.length > 0) {
@@ -2617,7 +2649,7 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                 if (translatedDialogue.length === 0) {
                     throw new Error('翻訳結果を解析できませんでした。');
                 }
-                displayResults({ dialogue: translatedDialogue });
+                displayResults({ dialogue: translatedDialogue }, { keepAdCopy: true });
 
             } catch (error) {
                 console.error('Translation failed:', error);
@@ -2666,7 +2698,12 @@ IMPORTANT: Do NOT draw or render any text, letters, characters, or words in the 
                     }
                 })
                 .catch((err) => console.warn('Service Worker 登録失敗:', err));
+            // 更新時（既に旧 SW が制御中だった場合）のみ再読み込み。初回インストールではリロードしない。
+            const hadController = !!navigator.serviceWorker.controller;
+            let swReloading = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!hadController || swReloading) return;
+                swReloading = true;
                 window.location.reload();
             });
         }
