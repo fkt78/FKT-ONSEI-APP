@@ -534,7 +534,7 @@
                     </ol>
                     <p class="text-blue-800 text-sm">※ VOICEVOX を起動すると、内部で Engine がポート 50021 で待ち受けます。別の PC でこのアプリを開いていると接続できないため、「同じPC（同じMac）で」VOICEVOX を起動する必要があります。</p>
                     <p class="text-blue-800 text-sm mt-2 font-semibold">【デプロイ版（HTTPS）で VOICEVOX を使う場合】</p>
-                    <p class="text-blue-800 text-sm mt-1">Firebase などオンラインで開いた場合、VOICEVOX Engine の CORS 設定が必要です。VOICEVOX を起動した状態で <a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">http://127.0.0.1:50021/setting</a> を開き、「Allow Origin」にこのアプリの URL（例：https://onsei-app-999b5.hattyuu-kanri-app-test.web.app）を追加して保存し、VOICEVOX を再起動してください。</p>
+                    <p class="text-blue-800 text-sm mt-1">Firebase などオンラインで開いた場合、VOICEVOX Engine の CORS 設定が必要です。VOICEVOX を起動した状態で <a href="http://127.0.0.1:50021/setting" target="_blank" rel="noopener" class="underline">http://127.0.0.1:50021/setting</a> を開き、「Allow Origin」にこのアプリの URL（例：https://onsei-app-999b5.web.app）を追加して保存し、VOICEVOX を再起動してください。</p>
                 </div>
 
                 <!-- Export Instructions -->
@@ -624,9 +624,9 @@
     <script type="module">
         // ★ コード変更時は必ずバージョンを上げること ★
         // SemVer: メジャー.マイナー.パッチ。デプロイ時は update-version.cjs でパッチとデプロイ日時を更新
-        const APP_VERSION = '1.4.6';
-        const APP_BUILD_DATETIME = '2026-11-25 17:36:38 (JST)';
-        const APP_BUILD_ISO = '2026-11-25T17:36:38+09:00';
+        const APP_VERSION = '1.4.8';
+        const APP_BUILD_DATETIME = '2026-11-25 17:38:53 (JST)';
+        const APP_BUILD_ISO = '2026-11-25T17:38:53+09:00';
 
         (function renderAppVersion() {
             const m = String(APP_VERSION).match(/^(\d+)\.(\d+)\.(\d+)$/);

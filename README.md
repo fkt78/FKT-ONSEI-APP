@@ -7,8 +7,8 @@
 
 このアプリは **音声作成アプリ専用のサイト** にデプロイされます（プロジェクトのメイン URL とは別です）。
 
-- **https://onsei-app-999b5.hattyuu-kanri-app-test.web.app**
-- **https://onsei-app-999b5.hattyuu-kanri-app-test.firebaseapp.com**
+- **https://onsei-app-999b5.web.app**
+- **https://onsei-app-999b5.firebaseapp.com**
 
 （`onsei` = 音声 なので、音声作成アプリだと分かる URL です）
 

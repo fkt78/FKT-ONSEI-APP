@@ -5,8 +5,8 @@
 
 **音声作成アプリの URL（onsei = 音声）：**
 
-- **https://onsei-app-999b5.hattyuu-kanri-app-test.web.app**
-- **https://onsei-app-999b5.hattyuu-kanri-app-test.firebaseapp.com**
+- **https://onsei-app-999b5.web.app**
+- **https://onsei-app-999b5.firebaseapp.com**
 
 プロジェクトのデフォルト URL（**https://hattyuu-kanri-app-test.web.app**）には、このアプリはデプロイされません。
 
@@ -22,7 +22,7 @@
 4. **「サイトを追加」**（または「Add another site」）をクリック
 5. **サイト ID** に **`onsei-app-999b5`** と入力して作成  
    - Firebase で「このサイト ID は使用できません。使用できる ID: ○○○」と出た場合は、提案された ID をそのまま使い、作成後に `.firebaserc` の `"onsei-app-999b5"` をその ID に書き換えてください  
-   - これが音声アプリ専用のサイトになり、URL は **https://onsei-app-999b5.hattyuu-kanri-app-test.web.app** になります
+   - これが音声アプリ専用のサイトになり、URL は **https://onsei-app-999b5.web.app** になります
 
 ※ すでに **hattyuu-kanri-app-test** 内にサイト ID **onsei-app-999b5** を作成済みの場合は、この手順は不要です。別のプロジェクト（例: new-check-137f9）にだけ作っている場合は、**hattyuu-kanri-app-test** でも同じサイト ID で追加してください。
 
@@ -72,7 +72,7 @@ firebase deploy
 成功すると、音声アプリ用の URL が表示されます。
 
 ```
-Hosting URL: https://onsei-app-999b5.hattyuu-kanri-app-test.web.app
+Hosting URL: https://onsei-app-999b5.web.app
 ```
 
 ---
@@ -92,7 +92,7 @@ cd "このフォルダのパス"
 
 | URL | 内容 |
 |-----|------|
-| **https://onsei-app-999b5.hattyuu-kanri-app-test.web.app** | **この音声作成アプリのみ**（専用サイト） |
+| **https://onsei-app-999b5.web.app** | **この音声作成アプリのみ**（専用サイト） |
 | https://hattyuu-kanri-app-test.web.app | プロジェクトのデフォルトサイト（このアプリはデプロイされない） |
 
 ---
